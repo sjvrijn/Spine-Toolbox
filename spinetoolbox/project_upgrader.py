@@ -125,16 +125,17 @@ class ProjectUpgrader:
         Returns:
             dict: Version 2 project dictionary
         """
-        new = dict()
-        new["version"] = 2
-        new["name"] = old["project"]["name"]
-        new["description"] = old["project"]["description"]
-        new["specifications"] = dict()
+        new = {
+            "version": 2,
+            "name": old["project"]["name"],
+            "description": old["project"]["description"],
+            "specifications": {},
+        }
         new["specifications"]["Tool"] = old["project"]["tool_specifications"]
         new["connections"] = old["project"]["connections"]
         # Change 'objects' to 'items' and remove all 'short name' entries
         # Also stores item_dict under their name and not under category
-        items = dict()
+        items = {}
         for category in old["objects"].keys():
             for item_name in old["objects"][category].keys():
                 old["objects"][category][item_name].pop("short name", "")  # Remove 'short name'
@@ -203,7 +204,7 @@ class ProjectUpgrader:
                 mappings = old_item_dict.get("mappings")
                 # Sanitize old mappings, as we use to do in Importer.from_dict
                 if mappings is None:
-                    mappings = list()
+                    mappings = []
                 # Convert table_types and table_row_types keys to int since json always has strings as keys.
                 for _, mapping in mappings:
                     table_types = mapping.get("table_types", {})
@@ -222,7 +223,7 @@ class ProjectUpgrader:
                 for k, (label, mapping) in enumerate(mappings):
                     spec_name = self.make_unique_importer_specification_name(item_name, label, k)
                     spec = dict(name=spec_name, item_type="Importer", mapping=mapping)
-                    spec_path = os.path.join(project_dir, spec_name + ".json")
+                    spec_path = os.path.join(project_dir, f"{spec_name}.json")
                     # FIXME: Let's try and handle write errors here...
                     with open(spec_path, "w") as fp:
                         json.dump(spec, fp, indent=4)
@@ -264,10 +265,11 @@ class ProjectUpgrader:
         """
         new = copy.deepcopy(old)
         new["project"]["version"] = 5
-        combiners = []
-        for name, item_dict in new["items"].items():
-            if item_dict["type"] == "Combiner":
-                combiners.append(name)
+        combiners = [
+            name
+            for name, item_dict in new["items"].items()
+            if item_dict["type"] == "Combiner"
+        ]
         for combiner in combiners:
             del new["items"][combiner]
         conns_to_item = {}
@@ -333,8 +335,8 @@ class ProjectUpgrader:
         """
 
         def fix_file_selection(item_dict):
-            old_selection = item_dict.get("file_selection", list())
-            new_selection = list()
+            old_selection = item_dict.get("file_selection", [])
+            new_selection = []
             for path, selected in old_selection:
                 deserialized = deserialize_path(path, project_dir)
                 if deserialized.startswith("{") and deserialized.endswith("}"):
@@ -344,8 +346,8 @@ class ProjectUpgrader:
             item_dict["file_selection"] = new_selection
 
         def fix_cmd_line_args(item_dict):
-            old_args = item_dict.get("cmd_line_args", list())
-            new_args = list()
+            old_args = item_dict.get("cmd_line_args", [])
+            new_args = []
             for arg in old_args:
                 deserialized = deserialize_path(arg, project_dir)
                 if deserialized.startswith("{") and deserialized.endswith("}"):
@@ -363,7 +365,7 @@ class ProjectUpgrader:
             fix_file_selection(import_dict)
         gimlet_dicts = [item_dict for item_dict in new["items"].values() if item_dict["type"] == "Gimlet"]
         for gimlet_dict in gimlet_dicts:
-            gimlet_dict["file_selection"] = gimlet_dict.pop("selections", list())
+            gimlet_dict["file_selection"] = gimlet_dict.pop("selections", [])
             fix_file_selection(gimlet_dict)
             fix_cmd_line_args(gimlet_dict)
         tool_dicts = [item_dict for item_dict in new["items"].values() if item_dict["type"] == "Tool"]
@@ -386,10 +388,11 @@ class ProjectUpgrader:
         """
         new = copy.deepcopy(old)
         new["project"]["version"] = 7
-        data_stores = []
-        for name, item_dict in new["items"].items():
-            if item_dict["type"] == "Data Store":
-                data_stores.append(name)
+        data_stores = [
+            name
+            for name, item_dict in new["items"].items()
+            if item_dict["type"] == "Data Store"
+        ]
         ds_ds_connections = {}
         to_remove = []
         for conn in new["project"]["connections"]:
@@ -436,13 +439,14 @@ class ProjectUpgrader:
         """
         new = copy.deepcopy(old)
         new["project"]["version"] = 8
-        purge_options_by_name = {}
-        for name, item_dict in new["items"].items():
-            if item_dict.get("purge_before_writing", False):
-                purge_options_by_name[name] = {
-                    "purge_before_writing": True,
-                    "purge_settings": item_dict.get("purge_settings"),
-                }
+        purge_options_by_name = {
+            name: {
+                "purge_before_writing": True,
+                "purge_settings": item_dict.get("purge_settings"),
+            }
+            for name, item_dict in new["items"].items()
+            if item_dict.get("purge_before_writing", False)
+        }
         for conn in new["project"]["connections"]:
             from_name, _ = conn["from"]
             purge_options = purge_options_by_name.get(from_name)
@@ -487,17 +491,19 @@ class ProjectUpgrader:
         """
         new = copy.deepcopy(old)
         new["project"]["version"] = 10
-        names_to_remove = list()  # Gimlet and GdxExporter item names
-        # Get Gimlet and GdxExporter names and remove connections
-        for name, item_dict in new["items"].items():
-            if item_dict["type"] in ["Gimlet", "GdxExporter"]:
-                names_to_remove.append(name)
+        names_to_remove = [
+            name
+            for name, item_dict in new["items"].items()
+            if item_dict["type"] in ["Gimlet", "GdxExporter"]
+        ]
         # Get list of connections to remove
-        connections_to_remove = list()
+        connections_to_remove = []
         for conn in new["project"]["connections"]:
-            for name_to_remove in names_to_remove:
-                if name_to_remove in conn["from"] or name_to_remove in conn["to"]:
-                    connections_to_remove.append(conn)
+            connections_to_remove.extend(
+                conn
+                for name_to_remove in names_to_remove
+                if name_to_remove in conn["from"] or name_to_remove in conn["to"]
+            )
         for conn_to_remove in connections_to_remove:
             new["project"]["connections"].remove(conn_to_remove)
         # Remove Gimlet and GdxExporter item dictionaries
@@ -587,7 +593,7 @@ class ProjectUpgrader:
                 self._toolbox.msg_error.emit("Invalid project.json file. Key {0} not found.".format(req_key))
                 return False
         # Check types in project dict
-        if not project["version"] == 1:
+        if project["version"] != 1:
             self._toolbox.msg_error.emit("Invalid project version")
             return False
         if not isinstance(project["name"], str) or not isinstance(project["description"], str):
@@ -634,7 +640,7 @@ class ProjectUpgrader:
                 self._toolbox.msg_error.emit("Invalid project.json file. Key {0} not found.".format(req_key))
                 return False
         # Check types in project dict
-        if not project["version"] == v:
+        if project["version"] != v:
             self._toolbox.msg_error.emit("Invalid project version:'{0}'".format(project["version"]))
             return False
         if not isinstance(project["name"], str) or not isinstance(project["description"], str):
@@ -684,7 +690,7 @@ class ProjectUpgrader:
     def backup_project_file(self, project_dir, v):
         """Makes a backup copy of project.json file."""
         src = os.path.join(project_dir, ".spinetoolbox", PROJECT_FILENAME)
-        backup_filename = "project.json.bak" + str(v)
+        backup_filename = f"project.json.bak{str(v)}"
         dst = os.path.join(project_dir, ".spinetoolbox", backup_filename)
         try:
             shutil.copyfile(src, dst)

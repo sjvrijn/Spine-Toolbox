@@ -67,11 +67,10 @@ class SimpleFilterCheckboxListModel(QAbstractListModel):
                 self._selected_filtered = set()
             else:
                 self._selected = set()
+        elif self._is_filtered:
+            self._selected_filtered = {self._data[i] for i in self._filter_index}
         else:
-            if self._is_filtered:
-                self._selected_filtered = set(self._data[i] for i in self._filter_index)
-            else:
-                self._selected = self._data_set.copy()
+            self._selected = self._data_set.copy()
         self._all_selected = not self._all_selected
         if self._show_empty:
             self._empty_selected = self._all_selected
@@ -124,20 +123,19 @@ class SimpleFilterCheckboxListModel(QAbstractListModel):
                 self._add_to_selection = not self._add_to_selection
             elif index.row() == 1 and self._show_empty:
                 self._empty_selected = not self._empty_selected
-            else:
-                if self._is_filtered:
-                    i = self._filter_index[index.row() - len(self._action_rows)]
-                    item = self._data[i]
-                    if item in self._selected_filtered:
-                        self._selected_filtered.discard(item)
-                    else:
-                        self._selected_filtered.add(item)
+            elif self._is_filtered:
+                i = self._filter_index[index.row() - len(self._action_rows)]
+                item = self._data[i]
+                if item in self._selected_filtered:
+                    self._selected_filtered.discard(item)
                 else:
-                    item = self._data[index.row() - len(self._action_rows)]
-                    if item in self._selected:
-                        self._selected.discard(item)
-                    else:
-                        self._selected.add(item)
+                    self._selected_filtered.add(item)
+            else:
+                item = self._data[index.row() - len(self._action_rows)]
+                if item in self._selected:
+                    self._selected.discard(item)
+                else:
+                    self._selected.add(item)
             self._all_selected = self._check_all_selected()
             self.dataChanged.emit(index, index, [Qt.ItemDataRole.CheckStateRole])
             self.dataChanged.emit(0, 0, [Qt.ItemDataRole.CheckStateRole])
@@ -187,7 +185,7 @@ class SimpleFilterCheckboxListModel(QAbstractListModel):
             self._action_rows[0] = self._SELECT_ALL_STR
             self._filter_expression = re.compile(filter_expression)
             self._filter_index = [i for i, item in enumerate(self._data) if self.search_filter_expression(item)]
-            self._selected_filtered = set(self._data[i] for i in self._filter_index)
+            self._selected_filtered = {self._data[i] for i in self._filter_index}
             self._add_to_selection = False
             self.beginResetModel()
             self._is_filtered = True
@@ -218,7 +216,11 @@ class SimpleFilterCheckboxListModel(QAbstractListModel):
             self._selected.update(self._selected_filtered)
             # remove unselected
             self._selected.difference_update(
-                set(item for item in (self._data[i] for i in self._filter_index) if item not in self._selected_filtered)
+                {
+                    item
+                    for item in (self._data[i] for i in self._filter_index)
+                    if item not in self._selected_filtered
+                }
             )
         self.remove_filter()
 

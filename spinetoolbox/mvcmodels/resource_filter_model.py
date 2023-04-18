@@ -92,11 +92,9 @@ class ResourceFilterModel(QStandardItemModel):
             url = resource.url
             if not url:
                 continue
-            scenario_names = self._connection.get_scenario_names(url)
-            if scenario_names:
+            if scenario_names := self._connection.get_scenario_names(url):
                 filters.setdefault(resource.label, {})[SCENARIO_FILTER_TYPE] = scenario_names
-            tool_names = self._connection.get_tool_names(url)
-            if tool_names:
+            if tool_names := self._connection.get_tool_names(url):
                 filters.setdefault(resource.label, {})[TOOL_FILTER_TYPE] = tool_names
         return filters
 

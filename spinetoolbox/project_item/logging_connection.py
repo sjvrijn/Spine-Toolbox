@@ -303,11 +303,14 @@ class LoggingConnection(LogMixin, HeadlessConnection):
         Returns:
             dict: mapping from filter names to online states
         """
-        found_resource = None
-        for resource in self._resources:
-            if resource.label == resource_label:
-                found_resource = resource
-                break
+        found_resource = next(
+            (
+                resource
+                for resource in self._resources
+                if resource.label == resource_label
+            ),
+            None,
+        )
         if found_resource is None:
             return {}
         return self._resource_filters_online(found_resource, filter_type)
@@ -393,12 +396,12 @@ class LoggingConnection(LogMixin, HeadlessConnection):
             x["name"] for x in self._toolbox.db_mngr.get_items(db_map, db_item_type, only_visible=True)
         )
         specific_filter_settings = self._filter_settings.known_filters.get(resource.label, {}).get(filter_type, {})
-        checked_specific_filter_settings = {}
-        for name in sorted(available_filters):
-            checked_specific_filter_settings[name] = specific_filter_settings.get(
+        return {
+            name: specific_filter_settings.get(
                 name, self._filter_settings.auto_online
             )
-        return checked_specific_filter_settings
+            for name in sorted(available_filters)
+        }
 
     def to_dict(self):
         """See base class."""

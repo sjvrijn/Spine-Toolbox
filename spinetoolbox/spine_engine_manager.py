@@ -256,7 +256,11 @@ class RemoteSpineEngineManager(SpineEngineManagerBase):
         host = app_settings.get("engineSettings/remoteHost", "")  # Host name
         port = app_settings.get("engineSettings/remotePort", "49152")  # Host port
         sec_model = app_settings.get("engineSettings/remoteSecurityModel", "")  # ZQM security model
-        security = ClientSecurityModel.NONE if not sec_model else ClientSecurityModel.STONEHOUSE
+        security = (
+            ClientSecurityModel.STONEHOUSE
+            if sec_model
+            else ClientSecurityModel.NONE
+        )
         sec_folder = (
             "" if security == ClientSecurityModel.NONE else app_settings.get("engineSettings/remoteSecurityFolder", "")
         )

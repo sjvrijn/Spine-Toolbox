@@ -31,9 +31,9 @@ class FrozenTableModel(QAbstractItemModel):
         self._parent = parent
         self.db_mngr = parent.db_mngr
         if headers is None:
-            headers = list()
+            headers = []
         if data is None:
-            data = list()
+            data = []
         self._data = data
         self._headers = headers
 
@@ -59,50 +59,47 @@ class FrozenTableModel(QAbstractItemModel):
         self.endResetModel()
 
     def rowCount(self, parent=QModelIndex()):
-        if parent.isValid():
-            return 0
-        return len(self._data)
+        return 0 if parent.isValid() else len(self._data)
 
     def columnCount(self, parent=QModelIndex()):
-        if parent.isValid():
-            return 0
-        return len(self._headers)
+        return 0 if parent.isValid() else len(self._headers)
 
     def row(self, index):
         if index.isValid():
             return self._data[index.row()]
 
     def data(self, index, role):
-        if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ToolTipRole):
-            header_id = self._data[index.row()][index.column()]
-            if index.row() == 0:
-                return header_id
-            index_id = self._data[0][index.column()]
-            if index_id == "parameter":
-                db_map, id_ = header_id
-                item = self.db_mngr.get_item(db_map, "parameter_definition", id_)
-                name = item.get("parameter_name")
-            elif index_id == "alternative":
-                db_map, id_ = header_id
-                item = self.db_mngr.get_item(db_map, "alternative", id_)
-                name = item.get("name")
-            elif index_id == "index":
-                _, index = header_id
-                item = {}
-                name = str(index)
-            elif index_id == "database":
-                item = {}
-                name = header_id.codename
-            else:
-                db_map, id_ = header_id
-                item = self.db_mngr.get_item(db_map, "object", id_)
-                name = item.get("name")
-            if role == Qt.ItemDataRole.DisplayRole:
-                return name
-            description = item.get("description")
-            if description in (None, ""):
-                description = name
-            return description
+        if role not in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ToolTipRole):
+            return
+        header_id = self._data[index.row()][index.column()]
+        if index.row() == 0:
+            return header_id
+        index_id = self._data[0][index.column()]
+        if index_id == "parameter":
+            db_map, id_ = header_id
+            item = self.db_mngr.get_item(db_map, "parameter_definition", id_)
+            name = item.get("parameter_name")
+        elif index_id == "alternative":
+            db_map, id_ = header_id
+            item = self.db_mngr.get_item(db_map, "alternative", id_)
+            name = item.get("name")
+        elif index_id == "index":
+            _, index = header_id
+            item = {}
+            name = str(index)
+        elif index_id == "database":
+            item = {}
+            name = header_id.codename
+        else:
+            db_map, id_ = header_id
+            item = self.db_mngr.get_item(db_map, "object", id_)
+            name = item.get("name")
+        if role == Qt.ItemDataRole.DisplayRole:
+            return name
+        description = item.get("description")
+        if description in (None, ""):
+            description = name
+        return description
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole:

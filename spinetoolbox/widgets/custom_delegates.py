@@ -149,7 +149,7 @@ class RankDelegate(CheckBoxDelegate):
     def _do_paint(painter, checkbox_style_option, index):
         checkbox_style_option.state |= QStyle.StateFlag.State_Off
         QApplication.style().drawControl(QStyle.ControlElement.CE_CheckBox, checkbox_style_option, painter)
-        rank = index.data()
-        if not rank:
+        if rank := index.data():
+            painter.drawText(checkbox_style_option.rect, Qt.AlignCenter, str(rank))
+        else:
             return
-        painter.drawText(checkbox_style_option.rect, Qt.AlignCenter, str(rank))

@@ -163,10 +163,10 @@ class CompoundTableModel(MinimalTableModel):
 
     def canFetchMore(self, parent):
         """Returns True if any of the submodels that haven't been fetched yet can fetch more."""
-        for self._next_sub_model in self.sub_models:
-            if self._next_sub_model.canFetchMore(self.map_to_sub(parent)):
-                return True
-        return False
+        return any(
+            self._next_sub_model.canFetchMore(self.map_to_sub(parent))
+            for self._next_sub_model in self.sub_models
+        )
 
     def fetchMore(self, parent):
         """Fetches the next sub model and increments the fetched counter."""
@@ -201,7 +201,7 @@ class CompoundTableModel(MinimalTableModel):
             columns.append(index.column())
             sub_model, _ = self._row_map[index.row()]
             sub_index = self.map_to_sub(index)
-            d.setdefault(sub_model, list()).append((sub_index, value))
+            d.setdefault(sub_model, []).append((sub_index, value))
         for model, index_value_tuples in d.items():
             indexes, values = zip(*index_value_tuples)
             model.batch_set_data(list(indexes), list(values))

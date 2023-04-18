@@ -43,8 +43,8 @@ class FileListModel(QAbstractItemModel):
         super().__init__()
         self._header_label = header_label
         self._draggable = draggable
-        self._single_resources = list()
-        self._pack_resources = list()
+        self._single_resources = []
+        self._pack_resources = []
 
     def rowCount(self, parent=QModelIndex()):
         if not parent.isValid():

@@ -147,10 +147,7 @@ class QProcessExecutionManager(ExecutionManager):
             self._logger.msg.emit("\tArguments: <b>{0}</b>".format(arg_str))
         elif new_state == QProcess.Running:
             self._logger.msg_warning.emit("\tExecution in progress...")
-        elif new_state == QProcess.NotRunning:
-            # logging.debug("Process is not running")
-            pass
-        else:
+        elif new_state != QProcess.NotRunning:
             self._logger.msg_error.emit("Process is in an unspecified state")
             logging.error("QProcess unspecified state: %s", new_state)
 
@@ -185,9 +182,7 @@ class QProcessExecutionManager(ExecutionManager):
     def teardown_process(self):
         """Tears down the QProcess in case a QProcess.ProcessError occurred.
         Emits execution_finished signal."""
-        if not self._process:
-            pass
-        else:
+        if self._process:
             out = str(self._process.readAllStandardOutput().data(), "utf-8", errors="replace")
             errout = str(self._process.readAllStandardError().data(), "utf-8", errors="replace")
             if out is not None:
@@ -229,9 +224,7 @@ class QProcessExecutionManager(ExecutionManager):
             if not self._silent:
                 self._logger.msg_error.emit("\tProcess crashed")
             exit_code = -1
-        elif exit_status == QProcess.NormalExit:
-            pass
-        else:
+        elif exit_status != QProcess.NormalExit:
             if not self._silent:
                 self._logger.msg_error.emit("Unknown QProcess exit status [{0}]".format(exit_status))
             exit_code = -1
@@ -239,12 +232,12 @@ class QProcessExecutionManager(ExecutionManager):
             self.process_failed = True
         if not self.user_stopped:
             out = str(self._process.readAllStandardOutput().data(), "utf-8", errors="replace")
-            errout = str(self._process.readAllStandardError().data(), "utf-8", errors="replace")
             if out is not None:
                 if not self._silent:
                     self._logger.msg_proc.emit(out.strip())
                 else:
                     self.process_output = out.strip()
+                    errout = str(self._process.readAllStandardError().data(), "utf-8", errors="replace")
                     self.process_error = errout.strip()
         else:
             self._logger.msg.emit("*** Terminating process ***")

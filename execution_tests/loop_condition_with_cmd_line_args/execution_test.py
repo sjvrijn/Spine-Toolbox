@@ -15,8 +15,10 @@ class LoopConditionWithCmdLineArgs(unittest.TestCase):
     def setUp(self):
         if self._tool_output_path.exists():
             shutil.rmtree(self._tool_output_path)
-        self._loop_counter_database_url = "sqlite:///" + str(self._loop_counter_database_path)
-        self._output_database_url = "sqlite:///" + str(self._output_database_path)
+        self._loop_counter_database_url = (
+            f"sqlite:///{str(self._loop_counter_database_path)}"
+        )
+        self._output_database_url = f"sqlite:///{str(self._output_database_path)}"
         for database_path, url in (
             (self._loop_counter_database_path, self._loop_counter_database_url),
             (self._output_database_path, self._output_database_url),

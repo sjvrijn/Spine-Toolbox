@@ -105,8 +105,7 @@ class ParameterValueEditorBase(QWidget):
         except ParameterValueFormatError as error:
             QMessageBox.warning(self, "Error", str(error))
             return
-        success = self._set_data(value)
-        if success:
+        if success := self._set_data(value):
             self.close()
 
     @Slot(int)

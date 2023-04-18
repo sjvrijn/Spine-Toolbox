@@ -70,14 +70,13 @@ class AlternativeModel(TreeModelBase):
         for db_key, alternative_ids in alternative_data.items():
             db_map = self.db_mngr.db_map_from_key(db_key)
             items = self.db_mngr.get_items(db_map, "alternative", only_visible=False)
-            names_to_descriptions.update({i.name: i.description for i in items})
+            names_to_descriptions |= {i.name: i.description for i in items}
         existing_names = {
             item.name for item in self.db_mngr.get_items(database_item.db_map, "alternative", only_visible=False)
         }
-        alternative_db_items = []
-        for name, description in names_to_descriptions.items():
-            if name in existing_names:
-                continue
-            alternative_db_items.append({"name": name, "description": description})
-        if alternative_db_items:
+        if alternative_db_items := [
+            {"name": name, "description": description}
+            for name, description in names_to_descriptions.items()
+            if name not in existing_names
+        ]:
             self.db_mngr.add_alternatives({database_item.db_map: alternative_db_items})

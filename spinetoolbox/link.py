@@ -502,8 +502,7 @@ class Link(JumpOrLink):
             sibling_conns = self._toolbox.project().incoming_connections(self.connection.destination)
             active = any(l.write_index > 1 for l in sibling_conns)
             self._icons.append(_TextIcon(self, self._icon_extent, str(self._connection.write_index), active=active))
-        notifications = self._connection.notifications()
-        if notifications:
+        if notifications := self._connection.notifications():
             tooltip = "Check Link properties. " + " ".join(notifications)
             self._icons.append(_WarningTextIcon(self, self._icon_extent, self._WARNING, tooltip))
         self._place_icons()
@@ -594,23 +593,23 @@ class LinkDrawerBase(LinkBase):
 
     @property
     def src_rect(self):
-        if not self.src_connector:
-            return QRectF()
-        return self.src_connector.sceneBoundingRect()
+        return (
+            self.src_connector.sceneBoundingRect()
+            if self.src_connector
+            else QRectF()
+        )
 
     @property
     def dst_rect(self):
-        if not self.dst_connector:
-            return QRectF()
-        return self.dst_connector.sceneBoundingRect()
+        return (
+            self.dst_connector.sceneBoundingRect()
+            if self.dst_connector
+            else QRectF()
+        )
 
     @property
     def dst_center(self):
-        if not self.dst_connector:
-            return self.tip
-        # If link drawer tip is on a connector button, this makes
-        # the tip 'snap' to the center of the connector button
-        return self.dst_rect.center()
+        return self.dst_rect.center() if self.dst_connector else self.tip
 
     def _get_dst_offset(self):
         if self.dst_connector is None:

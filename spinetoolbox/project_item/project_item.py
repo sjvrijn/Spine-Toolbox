@@ -51,9 +51,9 @@ class ProjectItem(LogMixin, MetaObject):
         self._logger = project.toolbox()
         self._properties_ui = None
         self._icon = None
-        self._sigs = dict()
+        self._sigs = {}
         self._active = False
-        self._actions = list()
+        self._actions = []
         # Make project directory for this Item
         self.data_dir = os.path.join(self._project.items_dir, self.short_name)
         self._specification = None
@@ -99,7 +99,7 @@ class ProjectItem(LogMixin, MetaObject):
         This is to enable simpler connecting and disconnecting.
         Must be implemented in subclasses.
         """
-        return dict()
+        return {}
 
     def activate(self):
         """Restore selections and connect signals."""
@@ -238,7 +238,7 @@ class ProjectItem(LogMixin, MetaObject):
         Returns:
             list: a list of ProjectItemResources
         """
-        return list()
+        return []
 
     def resources_for_direct_predecessors(self):
         """
@@ -250,7 +250,7 @@ class ProjectItem(LogMixin, MetaObject):
         Returns:
             list: a list of ProjectItemResources
         """
-        return list()
+        return []
 
     def _resources_to_predecessors_changed(self):
         """Notifies direct predecessors that item's resources have changed."""
@@ -423,7 +423,7 @@ class ProjectItem(LogMixin, MetaObject):
     @Slot(bool)
     def open_directory(self, checked=False):
         """Open this item's data directory in file explorer."""
-        url = "file:///" + self.data_dir
+        url = f"file:///{self.data_dir}"
         # noinspection PyTypeChecker, PyCallByClass, PyArgumentList
         res = open_url(url)
         if not res:

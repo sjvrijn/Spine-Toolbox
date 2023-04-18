@@ -32,7 +32,7 @@ class MinimalTableModel(QAbstractTableModel):
         if header is None:
             header = []
         self.header = header
-        self._main_data = list()
+        self._main_data = []
         self._fetched = not lazy
 
     def clear(self):
@@ -43,9 +43,11 @@ class MinimalTableModel(QAbstractTableModel):
 
     def flags(self, index):
         """Return index flags."""
-        if not index.isValid():
-            return Qt.NoItemFlags
-        return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
+        return (
+            Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
+            if index.isValid()
+            else Qt.NoItemFlags
+        )
 
     def canFetchMore(self, parent):
         """Return True if the model hasn't been fetched."""
@@ -206,7 +208,7 @@ class MinimalTableModel(QAbstractTableModel):
             if self.columnCount() == 0:
                 new_main_row = [None]
             else:
-                new_main_row = [None for j in range(self.columnCount())]
+                new_main_row = [None for _ in range(self.columnCount())]
             self._main_data.insert(row + i, new_main_row)
         self.endInsertRows()
         return True
@@ -276,7 +278,7 @@ class MinimalTableModel(QAbstractTableModel):
     def reset_model(self, main_data=None):
         """Reset model."""
         if main_data is None:
-            main_data = list()
+            main_data = []
         self.beginResetModel()
         self._main_data = main_data
         self.endResetModel()

@@ -32,7 +32,7 @@ class ObjectTreeModel(MultiDBTreeModel):
         if not index.isValid():
             return None
         rel_item = self.item_from_index(index)
-        if not rel_item.item_type == "relationship":
+        if rel_item.item_type != "relationship":
             return None
         # Get all ancestors
         rel_cls_item = rel_item.parent_item

@@ -35,9 +35,7 @@ class TreeItem:
 
     def has_children(self):
         """Returns whether this item has or could have children."""
-        if self.can_fetch_more():
-            return True
-        return bool(self.child_count())
+        return True if self.can_fetch_more() else bool(self.child_count())
 
     @property
     def model(self):
@@ -54,8 +52,9 @@ class TreeItem:
 
     @children.setter
     def children(self, children):
-        bad_types = [type(child) for child in children if not isinstance(child, TreeItem)]
-        if bad_types:
+        if bad_types := [
+            type(child) for child in children if not isinstance(child, TreeItem)
+        ]:
             raise TypeError(f"Cand't set children of type {bad_types} for an item of type {type(self)}")
         for child in children:
             child.parent_item = self
@@ -91,9 +90,7 @@ class TreeItem:
 
     def child_number(self):
         """Returns the rank of this item within its parent or -1 if it's an orphan."""
-        if self.parent_item:
-            return self.parent_item.children.index(self)
-        return -1
+        return self.parent_item.children.index(self) if self.parent_item else -1
 
     def find_children(self, cond=lambda child: True):
         """Returns children that meet condition expressed as a lambda function."""
@@ -136,8 +133,9 @@ class TreeItem:
         Returns:
             bool: True if the children were inserted successfully, False otherwise
         """
-        bad_types = [type(child) for child in children if not isinstance(child, TreeItem)]
-        if bad_types:
+        if bad_types := [
+            type(child) for child in children if not isinstance(child, TreeItem)
+        ]:
             raise TypeError(f"Can't insert children of type {bad_types} to an item of type {type(self)}")
         if position < 0 or position > self.child_count():
             return False
@@ -274,12 +272,10 @@ class MinimalTreeModel(QAbstractItemModel):
             if visit_children:
                 yield current
                 if view is None or view.isExpanded(self.index_from_item(current)):
-                    child = current.last_child()
-                    if child:
+                    if child := current.last_child():
                         current = child
                         continue
-            sibling = current.previous_sibling()
-            if sibling:
+            if sibling := current.previous_sibling():
                 visit_children = True
                 current = sibling
                 continue
@@ -305,9 +301,7 @@ class MinimalTreeModel(QAbstractItemModel):
             QModelIndex: item's index
         """
         row = item.child_number()
-        if row < 0:
-            return QModelIndex()
-        return self.createIndex(row, 0, item)
+        return QModelIndex() if row < 0 else self.createIndex(row, 0, item)
 
     def index(self, row, column, parent=QModelIndex()):
         """Returns the index of the item in the model specified by the given row, column and parent index."""

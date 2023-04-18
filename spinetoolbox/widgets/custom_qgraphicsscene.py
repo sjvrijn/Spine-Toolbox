@@ -181,7 +181,7 @@ class DesignGraphicsScene(CustomGraphicsScene):
             last_ind = self._toolbox.project_item_model.find_item(project_item_icons[-1].name())
             self._toolbox.ui.treeView_project.selectionModel().setCurrentIndex(last_ind, QItemSelectionModel.NoUpdate)
         selected_link_icons = [conn.parent for link in links for conn in (link.src_connector, link.dst_connector)]
-        selected_item_names |= set(icon.name() for icon in selected_link_icons)
+        selected_item_names |= {icon.name() for icon in selected_link_icons}
         self._toolbox.refresh_active_elements(active_project_item, active_link_item, selected_item_names)
         self._toolbox.override_console_and_execution_list()
 
@@ -297,7 +297,7 @@ class DesignGraphicsScene(CustomGraphicsScene):
         y_start = round(top_left.y() / radius)
         x_stop = x_start + round(rect.width() / dx) + 1
         y_stop = y_start + round(rect.height() / radius) + 1
-        centers = list()
+        centers = []
         centers_append = centers.append
         for i in range(x_start, x_stop):
             ref = QPointF(i * dx, (i & 1) * dy)

@@ -37,7 +37,7 @@ class ArrayModel(QAbstractTableModel):
             parent (QObject): parent object
         """
         super().__init__(parent)
-        self._data = list()
+        self._data = []
         self._data_type = float
         self._index_name = Array.DEFAULT_INDEX_NAME
 
@@ -89,8 +89,8 @@ class ArrayModel(QAbstractTableModel):
         Returns:
             tuple: indexes and converted values
         """
-        filtered = list()
-        converted = list()
+        filtered = []
+        converted = []
         if self._data_type == float:
             for index, value in zip(indexes, values):
                 if value is None:
@@ -137,18 +137,11 @@ class ArrayModel(QAbstractTableModel):
             else:
                 return None
         if role == Qt.ItemDataRole.DisplayRole:
-            if row == len(self._data):
-                return None
-            return str(self._data[row])
+            return None if row == len(self._data) else str(self._data[row])
         if role == Qt.ItemDataRole.EditRole:
-            if row == len(self._data):
-                return self._data_type()
-            return self._data[row]
+            return self._data_type() if row == len(self._data) else self._data[row]
         if role == Qt.ItemDataRole.ToolTipRole:
-            if row == len(self._data):
-                return None
-            element = self._data[row]
-            return str(element)
+            return None if row == len(self._data) else str(self._data[row])
         if role == Qt.ItemDataRole.BackgroundRole and row == len(self._data):
             return EXPANSE_COLOR
         return None
@@ -192,15 +185,14 @@ class ArrayModel(QAbstractTableModel):
         # Some special handling is needed if the array becomes empty after the operation.
         if not self._data:
             return False
-        if row == 0:
-            if len(self._data) == 1:
-                self._data.clear()
-                self.dataChanged.emit(
-                    self.index(0, 0),
-                    self.index(0, 0),
-                    [Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ToolTipRole, Qt.ItemDataRole.BackgroundRole],
-                )
-                return False
+        if row == 0 and len(self._data) == 1:
+            self._data.clear()
+            self.dataChanged.emit(
+                self.index(0, 0),
+                self.index(0, 0),
+                [Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ToolTipRole, Qt.ItemDataRole.BackgroundRole],
+            )
+            return False
         first_row = row if count < len(self._data) else 1
         self.beginRemoveRows(parent, first_row, row + count - 1)
         self._data = self._data[:row] + self._data[row + count :]

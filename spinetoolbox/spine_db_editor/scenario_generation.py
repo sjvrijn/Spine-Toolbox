@@ -36,8 +36,9 @@ def all_combinations(alternatives):
             selections = set(permutations(proto_selection, count))
         else:
             selections = (proto_selection,)
-        for selection in selections:
-            scenarios.append(list(compress(alternatives, selection)))
+        scenarios.extend(
+            list(compress(alternatives, selection)) for selection in selections
+        )
     return scenarios
 
 

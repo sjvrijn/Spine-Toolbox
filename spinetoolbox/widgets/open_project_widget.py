@@ -69,9 +69,9 @@ class OpenProjectDialog(QDialog):
         self.validator = DirValidator()
         self.ui.comboBox_current_path.setValidator(self.validator)
         self.ui.comboBox_current_path.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
-        # Read recent project directories and populate combobox
-        recents = self._toolbox.qsettings().value("appSettings/recentProjectStorages", defaultValue=None)
-        if recents:
+        if recents := self._toolbox.qsettings().value(
+            "appSettings/recentProjectStorages", defaultValue=None
+        ):
             recents_lst = str(recents).split("\n")
             self.ui.comboBox_current_path.insertItems(0, recents_lst)
             # Set start index to most recent project storage or to root if it does not exist
@@ -307,10 +307,9 @@ class OpenProjectDialog(QDialog):
                 First entry is also used as the initial path for File->New Project dialog.
             qsettings (QSettings): Toolbox qsettings object
         """
-        recents = qsettings.value("appSettings/recentProjectStorages", defaultValue=None)
-        if not recents:
-            updated_recents = entry
-        else:
+        if recents := qsettings.value(
+            "appSettings/recentProjectStorages", defaultValue=None
+        ):
             recents = str(recents)
             recents_list = recents.split("\n")
             # Add path only if it's not in the list already
@@ -322,6 +321,8 @@ class OpenProjectDialog(QDialog):
                 # If entry was on the list, move it as the first item
                 recents_list.insert(0, recents_list.pop(recents_list.index(entry)))
             updated_recents = "\n".join(recents_list)
+        else:
+            updated_recents = entry
         # Save updated recent paths
         qsettings.setValue("appSettings/recentProjectStorages", updated_recents)
         qsettings.sync()  # Commit change immediately
@@ -362,8 +363,6 @@ class OpenProjectDialog(QDialog):
             self.ui.comboBox_current_path.clear()
             self._toolbox.qsettings().setValue("appSettings/recentProjectStorages", "")
             self.go_root()
-        else:  # No option selected
-            pass
         self.combobox_context_menu.deleteLater()
         self.combobox_context_menu = None
 
@@ -406,15 +405,15 @@ class DirValidator(QValidator):
         previous_state = self.state
         if not txt:
             self.state = QValidator.State.Intermediate
-            if not previous_state == self.state:
+            if previous_state != self.state:
                 self.changed.emit()
             return self.state
         if os.path.isdir(txt):
             self.state = QValidator.State.Acceptable
-            if not previous_state == self.state:
+            if previous_state != self.state:
                 self.changed.emit()
             return self.state
         self.state = QValidator.State.Intermediate
-        if not previous_state == self.state:
+        if previous_state != self.state:
             self.changed.emit()
         return self.state

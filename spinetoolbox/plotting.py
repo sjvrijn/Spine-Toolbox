@@ -234,7 +234,7 @@ def combine_data_with_same_indexes(data_list):
             continue
         combined_xy = []
         for i in list_is:
-            combined_xy += [(x, y) for x, y in zip(data_list[i].x, data_list[i].y)]
+            combined_xy += list(zip(data_list[i].x, data_list[i].y))
         combined_xy.sort(key=itemgetter(0))
         x, y = zip(*combined_xy)
         model_data = data_list[list_is[0]]
@@ -289,7 +289,11 @@ def plot_data(data_list, plot_widget=None, plot_type=None):
     if needs_redraw:
         _clear_plot(plot_widget)
     if plot_type is None:
-        plot_type = PlotType.SCATTER_LINE if not isinstance(squeezed_data[0].x[0], np.datetime64) else PlotType.LINE
+        plot_type = (
+            PlotType.LINE
+            if isinstance(squeezed_data[0].x[0], np.datetime64)
+            else PlotType.SCATTER_LINE
+        )
     _limit_string_x_tick_labels(squeezed_data, plot_widget)
     y_labels = sorted({xy_data.y_label for xy_data in data_list})
     if len(y_labels) == 1 or _always_single_y_axis(plot_type):

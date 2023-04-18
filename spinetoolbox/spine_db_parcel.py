@@ -36,7 +36,7 @@ class SpineDBParcel:
         """
         super().__init__()
         self.db_mngr = db_mngr
-        self._data = dict()
+        self._data = {}
 
     @property
     def data(self):
@@ -99,7 +99,7 @@ class SpineDBParcel:
 
     def push_parameter_definition_ids(self, db_map_ids, entity_type):
         """Pushes parameter_definition ids."""
-        self._update_ids(db_map_ids, entity_type + "_parameter_ids")
+        self._update_ids(db_map_ids, f"{entity_type}_parameter_ids")
         self.push_parameter_value_list_ids(
             {
                 db_map: self._get_fields(db_map, "parameter_definition", "value_list_id", ids)
@@ -123,7 +123,7 @@ class SpineDBParcel:
 
     def push_parameter_value_ids(self, db_map_ids, entity_type):
         """Pushes parameter_value ids."""
-        self._update_ids(db_map_ids, entity_type + "_parameter_value_ids")
+        self._update_ids(db_map_ids, f"{entity_type}_parameter_value_ids")
         self.push_parameter_definition_ids(
             {
                 db_map: self._get_fields(db_map, "parameter_value", "parameter_id", ids)
@@ -304,7 +304,7 @@ class SpineDBParcel:
     def inner_push_parameter_value_ids(self, db_map_ids, entity_type):
         """Pushes parameter_value ids."""
         for db_map, ids in db_map_ids.items():
-            self._setdefault(db_map)[entity_type + "_parameter_value_ids"].update(ids)
+            self._setdefault(db_map)[f"{entity_type}_parameter_value_ids"].update(ids)
 
     def _update_ids(self, db_map_ids, key):
         """Updates ids for given database item.

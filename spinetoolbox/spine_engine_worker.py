@@ -232,7 +232,10 @@ class SpineEngineWorker(QObject):
             if event_type == "dag_exec_finished":
                 self._engine_final_state = data
                 break
-            elif event_type == "remote_execution_init_failed" or event_type == "server_init_failed":
+            elif event_type in [
+                "remote_execution_init_failed",
+                "server_init_failed",
+            ]:
                 self._logger.msg_error.emit(f"{data}")
                 self._engine_final_state = str(SpineEngineState.FAILED)
                 self._all_items_failed.emit(list(self._project_items.values()))
@@ -312,7 +315,7 @@ class SpineEngineWorker(QObject):
                 msg["filter_id"],
                 msg["kernel_name"],
                 msg["connection_file"],
-                msg.get("connection_file_dict", dict()),
+                msg.get("connection_file_dict", {}),
             )
         elif msg["type"] == "kernel_spec_not_found":
             msg_text = (

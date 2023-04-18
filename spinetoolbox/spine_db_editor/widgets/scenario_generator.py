@@ -126,7 +126,7 @@ class ScenarioGenerator(QWidget):
                 self._db_editor.db_mngr.add_scenarios({self._db_map: [{"name": name} for name in new_scenarios]})
                 waiter.wait()
         searchable_scenario_names = set(scenarios_to_modify)
-        scenario_definitions_by_id = dict()
+        scenario_definitions_by_id = {}
         alternative_iter = iter(scenario_alternatives)
         scenario_items = self._db_editor.db_mngr.get_items(self._db_map, "scenario", only_visible=False)
         for item in scenario_items:

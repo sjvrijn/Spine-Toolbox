@@ -49,9 +49,7 @@ class IndexedValueTableModel(QAbstractTableModel):
             value = self._value.values[index.row()]
             return str(value) if role == Qt.ItemDataRole.DisplayRole else value
         if role == Qt.ItemDataRole.BackgroundRole:
-            if index.row() == len(self._value):
-                return EXPANSE_COLOR
-            return None
+            return EXPANSE_COLOR if index.row() == len(self._value) else None
         return None
 
     def headerData(self, section, orientation=Qt.Orientation.Horizontal, role=Qt.ItemDataRole.DisplayRole):

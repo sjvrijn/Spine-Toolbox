@@ -45,12 +45,12 @@ class EntityQGraphicsView(CustomQGraphicsView):
         self._menu = QMenu(self)
         self.pos_x_parameter = "x"
         self.pos_y_parameter = "y"
-        self.selected_items = list()
+        self.selected_items = []
         self.removed_items = set()
-        self.hidden_items = dict()
-        self.pruned_db_map_entity_ids = dict()
-        self.heat_map_items = list()
-        self._point_value_tuples_per_parameter_name = dict()  # Used in the heat map menu
+        self.hidden_items = {}
+        self.pruned_db_map_entity_ids = {}
+        self.heat_map_items = []
+        self._point_value_tuples_per_parameter_name = {}
         self._hovered_obj_item = None
         self.relationship_class = None
         self.cross_hairs_items = []
@@ -228,7 +228,7 @@ class EntityQGraphicsView(CustomQGraphicsView):
         self._items_per_class = {}
         for item in self.entity_items:
             key = f"{item.entity_class_name}"
-            self._items_per_class.setdefault(key, list()).append(item)
+            self._items_per_class.setdefault(key, []).append(item)
         self._hide_classes_menu.clear()
         self._hide_classes_menu.setEnabled(bool(self._items_per_class))
         self._prune_classes_menu.clear()
@@ -333,7 +333,7 @@ class EntityQGraphicsView(CustomQGraphicsView):
     def _get_selected_entity_names(self):
         if not self.selected_items:
             return ""
-        names = "'" + self.selected_items[0].entity_name + "'"
+        names = f"'{self.selected_items[0].entity_name}'"
         if len(self.selected_items) > 1:
             names += f" and {len(self.selected_items) - 1} other entities"
         return names
@@ -477,18 +477,26 @@ class EntityQGraphicsView(CustomQGraphicsView):
         db_map_ids = {}
         for item in self.selected_items:
             db_map_ids.setdefault(item.db_map, set()).add(item.entity_id)
-        db_map_typed_data = {}
-        for db_map, ids in db_map_ids.items():
-            db_map_typed_data[db_map] = {
-                "parameter_value": set(
+        db_map_typed_data = {
+            db_map: {
+                "parameter_value": {
                     pv["id"]
-                    for parameter_name in (self.pos_x_parameter, self.pos_y_parameter)
+                    for parameter_name in (
+                        self.pos_x_parameter,
+                        self.pos_y_parameter,
+                    )
                     for pv in self.db_mngr.get_items_by_field(
-                        db_map, "parameter_value", "parameter_name", parameter_name, only_visible=False
+                        db_map,
+                        "parameter_value",
+                        "parameter_name",
+                        parameter_name,
+                        only_visible=False,
                     )
                     if pv["entity_id"] in ids
-                )
+                }
             }
+            for db_map, ids in db_map_ids.items()
+        }
         self.db_mngr.remove_items(db_map_typed_data)
         self._spine_db_editor.build_graph()
 

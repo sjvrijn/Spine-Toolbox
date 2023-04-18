@@ -41,17 +41,15 @@ class ParameterValueEditor(ParameterValueEditorBase):
         """
         editors = {ValueType.PLAIN_VALUE: PlainParameterValueEditor()}
         if not plain:
-            editors.update(
-                {
-                    ValueType.MAP: MapEditor(),
-                    ValueType.TIME_SERIES_FIXED_RESOLUTION: TimeSeriesFixedResolutionEditor(),
-                    ValueType.TIME_SERIES_VARIABLE_RESOLUTION: TimeSeriesVariableResolutionEditor(),
-                    ValueType.TIME_PATTERN: TimePatternEditor(),
-                    ValueType.ARRAY: ArrayEditor(),
-                    ValueType.DATETIME: DatetimeEditor(),
-                    ValueType.DURATION: DurationEditor(),
-                }
-            )
+            editors |= {
+                ValueType.MAP: MapEditor(),
+                ValueType.TIME_SERIES_FIXED_RESOLUTION: TimeSeriesFixedResolutionEditor(),
+                ValueType.TIME_SERIES_VARIABLE_RESOLUTION: TimeSeriesVariableResolutionEditor(),
+                ValueType.TIME_PATTERN: TimePatternEditor(),
+                ValueType.ARRAY: ArrayEditor(),
+                ValueType.DATETIME: DatetimeEditor(),
+                ValueType.DURATION: DurationEditor(),
+            }
         super().__init__(index, editors, parent)
         model = index.model()
         self._index = index

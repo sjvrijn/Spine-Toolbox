@@ -260,7 +260,7 @@ class ToolFeatureRequiredItem(StandardTreeItem):
             if not self.parent_item.item_data:
                 return None
             required = "yes" if self.parent_item.item_data["required"] else "no"
-            return "required: " + required
+            return f"required: {required}"
         return super().data(column, role)
 
     def set_data(self, column, value, role=Qt.ItemDataRole.EditRole):
@@ -336,11 +336,11 @@ class ToolFeatureMethodLeafItem(GrayIfLastMixin, LeafItem):
 
     def _make_item_to_add(self, value):
         tool_feat_item = self.tool_feature_item
-        tool_feature_id = tool_feat_item.id
         parameter_value_list_id = tool_feat_item.item_data["parameter_value_list_id"]
         method_index = self._get_method_index(parameter_value_list_id, value)
         if method_index is None:
             return None
+        tool_feature_id = tool_feat_item.id
         return dict(
             tool_feature_id=tool_feature_id, parameter_value_list_id=parameter_value_list_id, method_index=method_index
         )

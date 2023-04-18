@@ -159,10 +159,10 @@ class ToolboxUI(QMainWindow):
         self.setStyleSheet(MAINWINDOW_SS)
         # Class variables
         self.undo_stack = QUndoStack(self)
-        self._item_categories = dict()
-        self._item_properties_uis = dict()
-        self.item_factories = dict()  # maps item types to `ProjectItemFactory` objects
-        self._item_specification_factories = dict()  # maps item types to `ProjectItemSpecificationFactory` objects
+        self._item_categories = {}
+        self._item_properties_uis = {}
+        self.item_factories = {}
+        self._item_specification_factories = {}
         self._project = None
         self.project_item_model = None
         self.specification_model = None
@@ -208,7 +208,7 @@ class ToolboxUI(QMainWindow):
         self.set_debug_qactions()
         self.ui.tabWidget_item_properties.tabBar().hide()  # Hide tab bar in properties dock widget
         # Finalize init
-        self._proposed_item_name_counts = dict()
+        self._proposed_item_name_counts = {}
         self.restore_dock_widgets()
         self.restore_ui()
         self.ui.listView_console_executions.hide()
@@ -394,9 +394,9 @@ class ToolboxUI(QMainWindow):
         verbose = new_work_dir is not None
         if not new_work_dir:
             new_work_dir = self._qsettings.value("appSettings/workDir", defaultValue=DEFAULT_WORK_DIR)
-            if not new_work_dir:
-                # It is possible "appSettings/workDir" is an empty string???
-                new_work_dir = DEFAULT_WORK_DIR
+        if not new_work_dir:
+            # It is possible "appSettings/workDir" is an empty string???
+            new_work_dir = DEFAULT_WORK_DIR
         try:
             create_dir(new_work_dir)
             self._qsettings.setValue("appSettings/workDir", new_work_dir)
@@ -460,8 +460,8 @@ class ToolboxUI(QMainWindow):
                 return
             # Get previous project (directory)
             project_dir = self._qsettings.value("appSettings/previousProject", defaultValue="")
-            if not project_dir:
-                return
+        if not project_dir:
+            return
         if os.path.isfile(project_dir) and project_dir.endswith(".proj"):
             # Previous project was a .proj file -> Show welcome message instead
             self.msg.emit(welcome_msg)
@@ -510,9 +510,8 @@ class ToolboxUI(QMainWindow):
         Args:
             proj_dir (str): Path to project directory
         """
-        if self._project is not None:
-            if not self.close_project():
-                return
+        if self._project is not None and not self.close_project():
+            return
         self.undo_stack.clear()
         self._project = SpineToolboxProject(
             self, proj_dir, self._plugin_manager.plugin_specs, settings=self._qsettings, logger=self
@@ -553,10 +552,11 @@ class ToolboxUI(QMainWindow):
                 load_dir = dialog.selection()
             else:
                 recents = self.qsettings().value("appSettings/recentProjectStorages", defaultValue=None)
-                if not recents:
-                    start_dir = os.path.abspath(os.path.join(str(pathlib.Path.home())))
-                else:
-                    start_dir = str(recents).split("\n")[0]
+                start_dir = (
+                    str(recents).split("\n")[0]
+                    if recents
+                    else os.path.abspath(os.path.join(str(pathlib.Path.home())))
+                )
                 load_dir = QFileDialog.getExistingDirectory(self, caption="Open Spine Toolbox Project", dir=start_dir)
                 if not load_dir:
                     return False  # Cancelled
@@ -981,7 +981,9 @@ class ToolboxUI(QMainWindow):
                 break
         self.ui.tabWidget_item_properties.currentWidget().layout().insertWidget(0, self._properties_title)
         # Set QDockWidget title to selected item's type
-        self.ui.dockWidget_item.setWindowTitle(self.active_project_item.item_type() + " Properties")
+        self.ui.dockWidget_item.setWindowTitle(
+            f"{self.active_project_item.item_type()} Properties"
+        )
         color = self._item_properties_uis[self.active_project_item.item_type()].fg_color
         ss = f"QWidget{{background: {color.name()};}}"
         self._properties_title.setStyleSheet(ss)
@@ -1035,12 +1037,16 @@ class ToolboxUI(QMainWindow):
         def_file = os.path.abspath(answer[0])
         # Load specification
         local_data = load_specification_local_data(self._project.config_dir)
-        specification = load_specification_from_file(
-            def_file, local_data, self._item_specification_factories, self._qsettings, self
-        )
-        if not specification:
+        if specification := load_specification_from_file(
+            def_file,
+            local_data,
+            self._item_specification_factories,
+            self._qsettings,
+            self,
+        ):
+            self.undo_stack.push(AddSpecificationCommand(self._project, specification, save_to_disk=False))
+        else:
             return
-        self.undo_stack.push(AddSpecificationCommand(self._project, specification, save_to_disk=False))
 
     def replace_specification(self, name, specification):
         """Pushes an ReplaceSpecificationCommand to undo stack."""
@@ -1075,9 +1081,7 @@ class ToolboxUI(QMainWindow):
             str: absolute path or None if dialog was cancelled
         """
         answer = QFileDialog.getSaveFileName(self, title, proposed_path, file_filter)
-        if not answer[0]:  # Cancel button clicked
-            return None
-        return os.path.abspath(answer[0])
+        return os.path.abspath(answer[0]) if answer[0] else None
 
     @Slot(str, str)
     def _log_specification_saved(self, name, path):
@@ -1101,11 +1105,11 @@ class ToolboxUI(QMainWindow):
             self.msg.emit("No project items to remove.")
             return
         delete_data = int(self._qsettings.value("appSettings/deleteData", defaultValue="0")) != 0
-        msg = "Remove all items from project? "
-        if not delete_data:
-            msg += "Item data directory will still be available in the project directory after this operation."
-        else:
-            msg += "<br><br><b>Warning: Item data will be permanently lost after this operation.</b>"
+        msg = "Remove all items from project? " + (
+            "<br><br><b>Warning: Item data will be permanently lost after this operation.</b>"
+            if delete_data
+            else "Item data directory will still be available in the project directory after this operation."
+        )
         message_box = QMessageBox(
             QMessageBox.Icon.Question,
             "Remove All Items",
@@ -1173,11 +1177,14 @@ class ToolboxUI(QMainWindow):
                 return
             self.undo_stack.push(SaveSpecificationAsCommand(self._project, name, path))
             return
-        spec = None
-        for plugin_spec in self._plugin_manager.plugin_specs:
-            if plugin_spec.name == name:
-                spec = plugin_spec
-                break
+        spec = next(
+            (
+                plugin_spec
+                for plugin_spec in self._plugin_manager.plugin_specs
+                if plugin_spec.name == name
+            ),
+            None,
+        )
         if spec is None:
             self.msg_error.emit(f"Unable to find specification '{name}'.")
             return
@@ -1266,7 +1273,7 @@ class ToolboxUI(QMainWindow):
             logging.error("Failed to open editor for %s", file_path)
             self.msg_error.emit("Specification file <b>{0}</b> not found.".format(file_path))
             return
-        tool_specification_url = "file:///" + file_path
+        tool_specification_url = f"file:///{file_path}"
         # Open Tool specification file in editor
         # noinspection PyTypeChecker, PyCallByClass, PyArgumentList
         res = open_url(tool_specification_url)
@@ -1655,11 +1662,10 @@ class ToolboxUI(QMainWindow):
         self.msg.emit(f"Extracting project file project_package.zip to: {project_dir}")
         with ZipFile(zip_path, "r") as zip_obj:
             try:
-                first_bad_file = zip_obj.testzip()  # debugging
-                if not first_bad_file:
-                    zip_obj.extractall(project_dir)
-                else:
+                if first_bad_file := zip_obj.testzip():
                     self.msg_error.emit(f"Zip-file {zip_path} test failed. First bad file: {first_bad_file}")
+                else:
+                    zip_obj.extractall(project_dir)
             except Exception as e:
                 self.msg_error.emit(f"Problem in extracting downloaded project: {e}")
                 engine_client.close()
@@ -1675,7 +1681,11 @@ class ToolboxUI(QMainWindow):
         host = self._qsettings.value("engineSettings/remoteHost", defaultValue="")  # Host name
         port = self._qsettings.value("engineSettings/remotePort", defaultValue="49152")  # Host port
         sec_model = self._qsettings.value("engineSettings/remoteSecurityModel", defaultValue="")  # ZQM security model
-        security = ClientSecurityModel.NONE if not sec_model else ClientSecurityModel.STONEHOUSE
+        security = (
+            ClientSecurityModel.STONEHOUSE
+            if sec_model
+            else ClientSecurityModel.NONE
+        )
         sec_folder = (
             ""
             if security == ClientSecurityModel.NONE
@@ -1847,10 +1857,7 @@ class ToolboxUI(QMainWindow):
         answer = msg.exec()  # Show message box
         if answer == QMessageBox.StandardButton.Ok:
             # Update conf file according to checkbox status
-            if not chkbox.isChecked():
-                show_prompt = "2"  # 2 as in True
-            else:
-                show_prompt = "0"  # 0 as in False
+            show_prompt = "0" if chkbox.isChecked() else "2"
             self._qsettings.setValue("appSettings/showExitPrompt", show_prompt)
             return True
         return False
@@ -1918,7 +1925,7 @@ class ToolboxUI(QMainWindow):
     def update_recent_projects(self):
         """Adds a new entry to QSettings variable that remembers twenty most recent project paths."""
         recents = self._qsettings.value("appSettings/recentProjects", defaultValue=None)
-        entry = self.project().name + "<>" + self.project().project_dir
+        entry = f"{self.project().name}<>{self.project().project_dir}"
         if not recents:
             updated_recents = entry
         else:
@@ -1987,7 +1994,7 @@ class ToolboxUI(QMainWindow):
              dict: a dict containing serialized version of selected project items
         """
         selected_project_items = self.ui.graphicsView.scene().selectedItems()
-        items_dict = dict()
+        items_dict = {}
         for item_icon in selected_project_items:
             if not isinstance(item_icon, ProjectItemIcon):
                 continue
@@ -2050,7 +2057,7 @@ class ToolboxUI(QMainWindow):
         scene.clearSelection()
         shift_x, shift_y = self._deserialized_item_position_shifts(items_dict)
         scene_rect = scene.sceneRect()
-        final_items_dict = dict()
+        final_items_dict = {}
         for name, item_dict in items_dict.items():
             item_dict["duplicate_files"] = duplicate_files
             if self.project_item_model.find_item(name) is not None:
@@ -2092,10 +2099,10 @@ class ToolboxUI(QMainWindow):
     @Slot()
     def duplicate_project_item(self, duplicate_files=False):
         """Duplicates the selected project items."""
-        item_dicts = self._serialize_selected_items()
-        if not item_dicts:
+        if item_dicts := self._serialize_selected_items():
+            self._deserialize_items(item_dicts, duplicate_files)
+        else:
             return
-        self._deserialize_items(item_dicts, duplicate_files)
 
     def propose_item_name(self, prefix):
         """Proposes a name for a project item.
@@ -2109,7 +2116,7 @@ class ToolboxUI(QMainWindow):
             str: a name string
         """
         name_count = self._proposed_item_name_counts.setdefault(prefix, 0)
-        name = prefix + " {}".format(name_count + 1)
+        name = f"{prefix} {name_count + 1}"
         if self.project_item_model.find_item(name) is not None:
             if name_count == 98:
                 # Avoiding too deep recursions.
@@ -2236,7 +2243,7 @@ class ToolboxUI(QMainWindow):
         if self._project is None:
             self.msg.emit("Please open or create a project first")
             return
-        open_url("file:///" + self._project.project_dir)
+        open_url(f"file:///{self._project.project_dir}")
 
     @Slot(bool)
     def _open_project_item_directory(self, _):
@@ -2266,10 +2273,11 @@ class ToolboxUI(QMainWindow):
         delete_data = int(self._qsettings.value("appSettings/deleteData", defaultValue="0")) != 0
         if project_item_names:
             msg = f"Remove item(s) <b>{', '.join(project_item_names)}</b> from project? "
-            if not delete_data:
-                msg += "Item data directory will still be available in the project directory after this operation."
-            else:
-                msg += "<br><br><b>Warning: Item data will be permanently lost after this operation.</b>"
+            msg += (
+                "<br><br><b>Warning: Item data will be permanently lost after this operation.</b>"
+                if delete_data
+                else "Item data directory will still be available in the project directory after this operation."
+            )
             # noinspection PyCallByClass, PyTypeChecker
             message_box = QMessageBox(
                 QMessageBox.Icon.Question,
@@ -2405,7 +2413,7 @@ class ToolboxUI(QMainWindow):
         if not filter_id:
             self._item_consoles[item] = self._make_jupyter_console(item, kernel_name, connection_file)
         else:
-            d = self._filter_item_consoles.setdefault(item, dict())
+            d = self._filter_item_consoles.setdefault(item, {})
             d[filter_id] = self._make_jupyter_console(item, kernel_name, connection_file)
         self.override_console_and_execution_list()
 
@@ -2422,7 +2430,7 @@ class ToolboxUI(QMainWindow):
         if not filter_id:
             self._item_consoles[item] = self._make_persistent_console(item, key, language)
         else:
-            d = self._filter_item_consoles.setdefault(item, dict())
+            d = self._filter_item_consoles.setdefault(item, {})
             d[filter_id] = self._make_persistent_console(item, key, language)
         self.override_console_and_execution_list()
 
@@ -2439,9 +2447,11 @@ class ToolboxUI(QMainWindow):
         self._get_console(item, filter_id).add_stderr(data)
 
     def _get_console(self, item, filter_id):
-        if not filter_id:
-            return self._item_consoles[item]
-        return self._filter_item_consoles[item][filter_id]
+        return (
+            self._filter_item_consoles[item][filter_id]
+            if filter_id
+            else self._item_consoles[item]
+        )
 
     def _make_jupyter_console(self, item, kernel_name, connection_file):
         """Creates a new JupyterConsoleWidget for given connection file if none exists yet, and returns it.

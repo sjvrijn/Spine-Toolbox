@@ -39,8 +39,8 @@ def load_project_items(items_package_name):
     """
     items = importlib.import_module(items_package_name)
     items_root = pathlib.Path(items.__file__).parent
-    categories = dict()
-    factories = dict()
+    categories = {}
+    factories = {}
     for child in items_root.iterdir():
         if child.is_dir() and (child.joinpath("__init__.py").exists() or child.joinpath("__init__.pyc").exists()):
             spec = importlib.util.find_spec(f"{items_package_name}.{child.stem}")
@@ -58,7 +58,7 @@ def _find_module_material(module):
     item_type = None
     category = None
     factory = None
-    prefix = module.__name__ + "."
+    prefix = f"{module.__name__}."
     for _, modname, _ in pkgutil.iter_modules(module.__path__, prefix):
         submodule = __import__(modname, fromlist="dummy")
         for name in dir(submodule):

@@ -85,7 +85,7 @@ class MapModel(QAbstractTableModel):
             return
         first = len(self._rows[0]) + 1
         last = first
-        self.beginInsertColumns(QModelIndex(), first, last)
+        self.beginInsertColumns(QModelIndex(), last, last)
         self._rows = list(map(lambda row: row + [empty], self._rows))
         self._index_names += [Map.DEFAULT_INDEX_NAME]
         self.endInsertColumns()
@@ -125,9 +125,7 @@ class MapModel(QAbstractTableModel):
 
     def columnCount(self, index=QModelIndex()):
         """Returns the number of columns in this model."""
-        if not self._rows:
-            return len(self._index_names) + 2
-        return len(self._rows[0]) + 1
+        return len(self._rows[0]) + 1 if self._rows else len(self._index_names) + 2
 
     def convert_leaf_maps(self):
         converted = convert_leaf_maps_to_specialized_containers(self.value())
@@ -142,9 +140,7 @@ class MapModel(QAbstractTableModel):
             if self._is_in_expanse(row_index, column_index):
                 return EXPANSE_COLOR
             data_length = _data_length(self._rows[row_index])
-            if column_index >= data_length:
-                return self._EMTPY_COLOR
-            return None
+            return self._EMTPY_COLOR if column_index >= data_length else None
         if role in (Qt.ItemDataRole.EditRole, PARSED_ROLE):
             if self._is_in_expanse(row_index, column_index):
                 return ""
@@ -166,9 +162,7 @@ class MapModel(QAbstractTableModel):
                 return "Array"
             if data is None:
                 return "None"
-            if data is empty:
-                return ""
-            return data
+            return "" if data is empty else data
         if role == Qt.ItemDataRole.FontRole:
             if self._is_in_expanse(row_index, column_index):
                 return None
@@ -180,18 +174,18 @@ class MapModel(QAbstractTableModel):
 
     def flags(self, index):
         """Returns flags at index."""
-        if not index.isValid():
-            return Qt.NoItemFlags
-        return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return (
+            Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+            if index.isValid()
+            else Qt.NoItemFlags
+        )
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         """Returns row numbers for vertical headers and column titles for horizontal ones."""
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         if orientation == Qt.Orientation.Vertical:
-            if section < len(self._rows):
-                return section + 1
-            return None
+            return section + 1 if section < len(self._rows) else None
         return (self._index_names + ["Value", None])[section]
 
     def insertColumns(self, column, count, parent=QModelIndex()):
@@ -228,15 +222,13 @@ class MapModel(QAbstractTableModel):
         if self._rows:
             if row == self.rowCount():
                 row = len(self._rows)
-            if row > 0:
-                row_before = self._rows[row - 1]
-            else:
-                row_before = len(self._rows[0]) * [empty]
+            row_before = self._rows[row - 1] if row > 0 else len(self._rows[0]) * [empty]
         else:
             row_before = (len(self._index_names) + 1) * [empty]
-        inserted = list()
-        for _ in range(count):
-            inserted.append([deepcopy(x) if x is not empty else x for x in row_before])
+        inserted = [
+            [deepcopy(x) if x is not empty else x for x in row_before]
+            for _ in range(count)
+        ]
         self._rows = self._rows[:row] + inserted + self._rows[row:]
         self.endInsertRows()
         return True
@@ -281,9 +273,7 @@ class MapModel(QAbstractTableModel):
         Returns:
             bool: True if column is expanse column, False otherwise
         """
-        if not self._rows:
-            return True
-        return column == len(self._rows[0])
+        return column == len(self._rows[0]) if self._rows else True
 
     def is_expanse_row(self, row):
         """
@@ -410,7 +400,7 @@ class MapModel(QAbstractTableModel):
         elif value != 0 and not value:
             row[column_index] = empty
         else:
-            row[column_index] = value if not isinstance(value, Number) else float(value)
+            row[column_index] = float(value) if isinstance(value, Number) else value
         self.dataChanged.emit(index, index, [Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ToolTipRole])
         if column_index > 0:
             top_left = self.index(row_index, 0)
@@ -472,7 +462,7 @@ def _rows_to_dict(rows):
     Returns:
         dict: a nested dictionary
     """
-    tree = dict()
+    tree = {}
     for row in rows:
         current = tree
         for i, column in enumerate(row):
@@ -481,7 +471,7 @@ def _rows_to_dict(rows):
             if i < len(row) - 2 and row[i + 2] is not empty:
                 if not isinstance(column, (str, int, float, DateTime, Duration)):
                     raise ParameterValueFormatError(f"Index on row {rows.index(row) + 1} column {i + 1} is not scalar.")
-                current = current.setdefault(column, dict())
+                current = current.setdefault(column, {})
                 if not isinstance(current, dict):
                     raise ParameterValueFormatError(f"Indexing broken on row {rows.index(row) + 1} column {i + 1}.")
             else:
@@ -503,8 +493,8 @@ def _reconstruct_map(tree):
     Returns:
         Map: reconstructed Map
     """
-    indexes = list()
-    values = list()
+    indexes = []
+    values = []
     for key, value in tree.items():
         if isinstance(value, dict):
             value = _reconstruct_map(value)
@@ -513,9 +503,8 @@ def _reconstruct_map(tree):
     if len(indexes) > 1:
         first_type = type(indexes[0])
         if any(not isinstance(i, first_type) for i in indexes[1:]):
-            raise ParameterValueFormatError(f"Index type mismatch.")
-    map_ = Map(indexes, values)
-    return map_
+            raise ParameterValueFormatError("Index type mismatch.")
+    return Map(indexes, values)
 
 
 def _data_length(row):
@@ -542,7 +531,7 @@ def _gather_index_names(map_value):
     Returns:
         list of str: index names
     """
-    nested_names = list()
+    nested_names = []
     for v in map_value.values:
         if isinstance(v, Map):
             new_nested_names = _gather_index_names(v)

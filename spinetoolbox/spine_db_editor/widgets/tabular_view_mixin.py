@@ -290,7 +290,7 @@ class TabularViewMixin:
             dict: Key is db_map-object_id tuple, value is None.
         """
         if db_map_class_objects is None:
-            db_map_class_objects = dict()
+            db_map_class_objects = {}
         if self.current_class_type == "object_class":
             return {}
         data = {}
@@ -304,7 +304,7 @@ class TabularViewMixin:
                 given_objects = db_map_class_objects.get(db_map, {}).get(class_id)
                 if given_objects is not None:
                     given_ids = {item["id"]: None for item in given_objects}
-                    ids.update(given_ids)
+                    ids |= given_ids
                     all_given_ids.update(given_ids.keys())
                 object_id_lists.append(list(ids.keys()))
             db_map_data = {
@@ -312,7 +312,7 @@ class TabularViewMixin:
                 for objects_ids in product(*object_id_lists)
                 if not all_given_ids or all_given_ids.intersection(objects_ids)
             }
-            data.update(db_map_data)
+            data |= db_map_data
         return data
 
     def load_full_relationship_data(self, db_map_relationships=None, action="add"):
@@ -370,7 +370,7 @@ class TabularViewMixin:
                 for scen_id, alternative_ranks in scenario_alternative_ranks.items()
                 for alt_id in alternative_ids
             }
-            data.update(db_map_data)
+            data |= db_map_data
         return data
 
     def _get_db_map_parameter_value_or_def_ids(self, item_type):
@@ -584,9 +584,10 @@ class TabularViewMixin:
     def _can_build_pivot_table(self):
         if self.current_input_type != self._SCENARIO_ALTERNATIVE and not self.current_class_id:
             return False
-        if self.current_input_type == self._RELATIONSHIP and self.current_class_type != "relationship_class":
-            return False
-        return True
+        return (
+            self.current_input_type != self._RELATIONSHIP
+            or self.current_class_type == "relationship_class"
+        )
 
     def clear_pivot_table(self):
         self.wipe_out_filter_menus()
@@ -749,9 +750,11 @@ class TabularViewMixin:
         Returns:
             tuple
         """
-        if not index.isValid():
-            return tuple(None for _ in range(self.frozen_table_model.columnCount()))
-        return self.frozen_table_model.row(index)
+        return (
+            self.frozen_table_model.row(index)
+            if index.isValid()
+            else tuple(None for _ in range(self.frozen_table_model.columnCount()))
+        )
 
     @Slot("QModelIndex", "QModelIndex")
     def change_frozen_value(self, current, previous):
@@ -788,12 +791,12 @@ class TabularViewMixin:
             ind = frozen_values.index(frozen_value)
             self.ui.frozen_table.selectionModel().blockSignals(True)  # prevent selectionChanged signal when updating
             self.ui.frozen_table.selectRow(ind + 1)
-            self.ui.frozen_table.selectionModel().blockSignals(False)
         else:
             # frozen value not found, remove selection
             self.ui.frozen_table.selectionModel().blockSignals(True)  # prevent selectionChanged signal when updating
             self.ui.frozen_table.clearSelection()
-            self.ui.frozen_table.selectionModel().blockSignals(False)
+
+        self.ui.frozen_table.selectionModel().blockSignals(False)
 
     def find_frozen_values(self, frozen):
         """Returns a list of tuples containing unique values (object ids) for the frozen indexes (object_class ids).

@@ -226,9 +226,6 @@ class Cat(QGraphicsSvgItem):
         m33 = transform.m33()
         scale = m11 * self.scale()
         m11 = -m11
-        if m31 > 0:
-            m31 = 0
-        else:
-            m31 = self.boundingRect().width() * scale
+        m31 = 0 if m31 > 0 else self.boundingRect().width() * scale
         transform.setMatrix(m11, m12, m13, m21, m22, m23, m31, m32, m33)
         self.setTransform(transform)

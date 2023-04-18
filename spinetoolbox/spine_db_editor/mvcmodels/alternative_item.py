@@ -57,6 +57,4 @@ class AlternativeItem(GrayIfLastMixin, EditableMixin, LeafItem):
 
     def flags(self, column):
         flags = super().flags(column)
-        if self.id is None:
-            return flags
-        return flags | Qt.ItemFlag.ItemIsDragEnabled
+        return flags if self.id is None else flags | Qt.ItemFlag.ItemIsDragEnabled

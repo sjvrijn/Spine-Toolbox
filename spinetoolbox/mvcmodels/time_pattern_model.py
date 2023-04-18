@@ -28,9 +28,11 @@ class TimePatternModel(IndexedValueTableModel):
 
     def flags(self, index):
         """Returns flags at index."""
-        if not index.isValid():
-            return Qt.NoItemFlags
-        return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return (
+            Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+            if index.isValid()
+            else Qt.NoItemFlags
+        )
 
     def insertRows(self, row, count, parent=QModelIndex()):
         """
@@ -124,8 +126,8 @@ class TimePatternModel(IndexedValueTableModel):
             indexes (Sequence): a sequence of model indexes
             values (Sequence): a sequence of time periods/floats corresponding to the indexes
         """
-        modified_rows = list()
-        modified_columns = list()
+        modified_rows = []
+        modified_columns = []
         for index, value in zip(indexes, values):
             row = index.row()
             modified_rows.append(row)

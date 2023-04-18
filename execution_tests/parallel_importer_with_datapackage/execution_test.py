@@ -28,7 +28,7 @@ class ParallelImporterWithDatapackage(unittest.TestCase):
         self._source_database_path.parent.mkdir(parents=True, exist_ok=True)
         if self._source_database_path.exists():
             self._source_database_path.unlink()
-        url = "sqlite:///" + str(self._source_database_path)
+        url = f"sqlite:///{str(self._source_database_path)}"
         db_map = DatabaseMapping(url, create=True)
         import_alternatives(db_map, ("alternative_1", "alternative_2"))
         import_scenarios(db_map, (("scenario_1", True), ("scenario_2", True)))
@@ -43,7 +43,7 @@ class ParallelImporterWithDatapackage(unittest.TestCase):
         self._sink_database_path.parent.mkdir(parents=True, exist_ok=True)
         if self._sink_database_path.exists():
             self._sink_database_path.unlink()
-        self._sink_url = "sqlite:///" + str(self._sink_database_path)
+        self._sink_url = f"sqlite:///{str(self._sink_database_path)}"
         db_map = DatabaseMapping(self._sink_url, create=True)
         db_map.connection.close()
 

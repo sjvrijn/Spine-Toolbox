@@ -543,7 +543,7 @@ class QWizardProcessPage(QWizardPage):
 
         def __set_name__(self, owner, name):
             self.public_name = name
-            self.private_name = '_' + name
+            self.private_name = f'_{name}'
 
         def __get__(self, obj, objtype=None):
             return getattr(obj, self.private_name)

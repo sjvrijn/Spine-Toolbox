@@ -231,12 +231,10 @@ class JupyterConsoleWidget(RichJupyterWidget):
         lines = text.splitlines()
         useful_lines = []
         for line in lines:
-            m = self._highlighter._classic_prompt_re.match(line)
-            if m:
+            if m := self._highlighter._classic_prompt_re.match(line):
                 useful_lines.append(line[len(m.group(0)) :])
                 continue
-            m = self._highlighter._ipy_prompt_re.match(line)
-            if m:
+            if m := self._highlighter._ipy_prompt_re.match(line):
                 useful_lines.append(line[len(m.group(0)) :])
                 continue
         text = '\n'.join(useful_lines)

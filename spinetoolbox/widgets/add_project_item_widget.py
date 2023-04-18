@@ -86,7 +86,7 @@ class AddProjectItemWidget(QWidget):
             self.ui.label_folder.setText(default)
         else:
             folder_name = name.lower().replace(" ", "_")
-            msg = default + " " + folder_name
+            msg = f"{default} {folder_name}"
             self.ui.label_folder.setText(msg)
 
     @Slot()
@@ -127,7 +127,7 @@ class AddProjectItemWidget(QWidget):
         """
         if e.key() == Qt.Key_Escape:
             self.close()
-        elif e.key() == Qt.Key_Enter or e.key() == Qt.Key_Return:
+        elif e.key() in [Qt.Key_Enter, Qt.Key_Return]:
             self.handle_ok_clicked()
 
     def closeEvent(self, event=None):
@@ -139,7 +139,6 @@ class AddProjectItemWidget(QWidget):
         if event:
             event.accept()
             scene = self._toolbox.ui.graphicsView.scene()
-            item_shadow = scene.item_shadow
-            if item_shadow:
+            if item_shadow := scene.item_shadow:
                 scene.removeItem(item_shadow)
                 scene.item_shadow = None

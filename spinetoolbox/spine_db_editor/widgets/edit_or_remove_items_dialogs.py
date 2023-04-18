@@ -37,7 +37,7 @@ from ...helpers import default_icon_id
 class EditOrRemoveItemsDialog(ManageItemsDialog):
     def __init__(self, parent, db_mngr):
         super().__init__(parent, db_mngr)
-        self.items = list()
+        self.items = []
 
     def all_databases(self, row):
         """Returns a list of db names available for a given row.
@@ -65,9 +65,9 @@ class EditObjectClassesDialog(ShowIconColorEditorMixin, EditOrRemoveItemsDialog)
         self.table_view.setModel(self.model)
         self.table_view.setItemDelegate(ManageObjectClassesDelegate(self))
         self.connect_signals()
-        self.orig_data = list()
+        self.orig_data = []
         self.default_display_icon = default_icon_id()
-        model_data = list()
+        model_data = []
         for item in selected:
             data = item.db_map_data(item.first_db_map)
             row_data = [item.display_data, data['description'], data['display_icon']]
@@ -94,7 +94,7 @@ class EditObjectClassesDialog(ShowIconColorEditorMixin, EditOrRemoveItemsDialog)
     @Slot()
     def accept(self):
         """Collect info from dialog and try to update items."""
-        db_map_data = dict()
+        db_map_data = {}
         for i in range(self.model.rowCount()):
             name, description, display_icon, db_names = self.model.row_data(i)
             if db_names is None:
@@ -108,7 +108,7 @@ class EditObjectClassesDialog(ShowIconColorEditorMixin, EditOrRemoveItemsDialog)
                     return
                 db_maps.append(db_map)
             if not name:
-                self.parent().msg_error.emit("Object class name missing at row {}".format(i + 1))
+                self.parent().msg_error.emit(f"Object class name missing at row {i + 1}")
                 return
             orig_row = self.orig_data[i]
             if [name, description, display_icon] == orig_row:
@@ -145,8 +145,8 @@ class EditObjectsDialog(EditOrRemoveItemsDialog):
         self.table_view.setItemDelegate(ManageObjectsDelegate(self))
         self.connect_signals()
         self.model.set_horizontal_header_labels(['object name', 'description', 'databases'])
-        self.orig_data = list()
-        model_data = list()
+        self.orig_data = []
+        model_data = []
         for item in selected:
             data = item.db_map_data(item.first_db_map)
             row_data = [item.display_data, data['description']]
@@ -159,7 +159,7 @@ class EditObjectsDialog(EditOrRemoveItemsDialog):
     @Slot()
     def accept(self):
         """Collect info from dialog and try to update items."""
-        db_map_data = dict()
+        db_map_data = {}
         for i in range(self.model.rowCount()):
             name, description, db_names = self.model.row_data(i)
             if db_names is None:
@@ -173,7 +173,7 @@ class EditObjectsDialog(EditOrRemoveItemsDialog):
                     return
                 db_maps.append(db_map)
             if not name:
-                self.parent().msg_error.emit("Object name missing at row {}".format(i + 1))
+                self.parent().msg_error.emit(f"Object name missing at row {i + 1}")
                 return
             orig_row = self.orig_data[i]
             if [name, description] == orig_row:
@@ -208,8 +208,8 @@ class EditRelationshipClassesDialog(ShowIconColorEditorMixin, EditOrRemoveItemsD
         self.table_view.setItemDelegate(ManageRelationshipClassesDelegate(self))
         self.connect_signals()
         self.model.set_horizontal_header_labels(['relationship_class name', 'description', 'display icon', 'databases'])
-        self.orig_data = list()
-        model_data = list()
+        self.orig_data = []
+        model_data = []
         for item in selected:
             data = item.db_map_data(item.first_db_map)
             row_data = [item.display_data, data['description'], data['display_icon']]
@@ -229,7 +229,7 @@ class EditRelationshipClassesDialog(ShowIconColorEditorMixin, EditOrRemoveItemsD
     @Slot()
     def accept(self):
         """Collect info from dialog and try to update items."""
-        db_map_data = dict()
+        db_map_data = {}
         for i in range(self.model.rowCount()):
             name, description, display_icon, db_names = self.model.row_data(i)
             if db_names is None:
@@ -243,7 +243,7 @@ class EditRelationshipClassesDialog(ShowIconColorEditorMixin, EditOrRemoveItemsD
                     return
                 db_maps.append(db_map)
             if not name:
-                self.parent().msg_error.emit("Relationship class name missing at row {}".format(i + 1))
+                self.parent().msg_error.emit(f"Relationship class name missing at row {i + 1}")
                 return
             orig_row = self.orig_data[i]
             if [name, description] == orig_row:
@@ -282,10 +282,11 @@ class EditRelationshipsDialog(GetRelationshipClassesMixin, GetObjectsMixin, Edit
         self.connect_signals()
         self.class_name, self.object_class_name_list = class_key
         self.model.set_horizontal_header_labels(
-            [x + ' name' for x in self.object_class_name_list] + ['relationship name', 'databases']
+            [f'{x} name' for x in self.object_class_name_list]
+            + ['relationship name', 'databases']
         )
-        self.orig_data = list()
-        model_data = list()
+        self.orig_data = []
+        model_data = []
         self.db_maps = set()
         for item in selected:
             self.db_maps.update(item.db_maps)
@@ -303,7 +304,7 @@ class EditRelationshipsDialog(GetRelationshipClassesMixin, GetObjectsMixin, Edit
     @Slot()
     def accept(self):
         """Collect info from dialog and try to update items."""
-        db_map_data = dict()
+        db_map_data = {}
         name_column = self.model.horizontal_header_labels().index("relationship name")
         db_column = self.model.horizontal_header_labels().index("databases")
         for i in range(self.model.rowCount()):
@@ -322,7 +323,7 @@ class EditRelationshipsDialog(GetRelationshipClassesMixin, GetObjectsMixin, Edit
                     return
                 db_maps.append(db_map)
             if not name:
-                self.parent().msg_error.emit("Relationship class name missing at row {}".format(i + 1))
+                self.parent().msg_error.emit(f"Relationship class name missing at row {i + 1}")
                 return
             orig_row = self.orig_data[i]
             if [*object_name_list, name] == orig_row:
@@ -334,26 +335,27 @@ class EditRelationshipsDialog(GetRelationshipClassesMixin, GetObjectsMixin, Edit
                 relationship_classes = self.db_map_rel_cls_lookup[db_map]
                 if (self.class_name, self.object_class_name_list) not in relationship_classes:
                     self.parent().msg_error.emit(
-                        "Invalid relationship_class '{}' for db '{}' at row {}".format(
-                            self.class_name, db_map.codename, i + 1
-                        )
+                        f"Invalid relationship_class '{self.class_name}' for db '{db_map.codename}' at row {i + 1}"
                     )
                     return
                 rel_cls = relationship_classes[self.class_name, self.object_class_name_list]
                 object_class_id_list = rel_cls["object_class_id_list"]
                 objects = self.db_map_obj_lookup[db_map]
                 # Find object_id_list
-                object_id_list = list()
+                object_id_list = []
                 for object_class_id, object_name in zip(object_class_id_list, object_name_list):
                     if (object_class_id, object_name) not in objects:
                         self.parent().msg_error.emit(
-                            "Invalid object '{}' for db '{}' at row {}".format(object_name, db_map.codename, i + 1)
+                            f"Invalid object '{object_name}' for db '{db_map.codename}' at row {i + 1}"
                         )
                         return
                     object_id = objects[object_class_id, object_name]["id"]
                     object_id_list.append(object_id)
-                db_item = pre_db_item.copy()
-                db_item.update({'id': id_, 'object_id_list': object_id_list, 'name': name})
+                db_item = pre_db_item | {
+                    'id': id_,
+                    'object_id_list': object_id_list,
+                    'name': name,
+                }
                 db_map_data.setdefault(db_map, []).append(db_item)
         if not db_map_data:
             self.parent().msg_error.emit("Nothing to update")
@@ -380,7 +382,7 @@ class RemoveEntitiesDialog(EditOrRemoveItemsDialog):
         self.table_view.setItemDelegate(RemoveEntitiesDelegate(self))
         self.connect_signals()
         self.model.set_horizontal_header_labels(['type', 'name', 'databases'])
-        model_data = list()
+        model_data = []
         for item_type, items in selected.items():
             for item in items:
                 row_data = [item_type, item.display_data, item.display_database]
@@ -391,7 +393,7 @@ class RemoveEntitiesDialog(EditOrRemoveItemsDialog):
     @Slot()
     def accept(self):
         """Collect info from dialog and try to remove items."""
-        db_map_typed_data = dict()
+        db_map_typed_data = {}
         for i in range(self.model.rowCount()):
             item_type, _, db_names = self.model.row_data(i)
             if db_names is None:

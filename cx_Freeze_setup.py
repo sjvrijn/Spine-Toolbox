@@ -102,10 +102,7 @@ def main(argv):
         "include_msvcr": True
     }
     # Windows specific options
-    if os.name == "nt":  # Windows specific options
-        base = "Win32GUI"  # set this to "Win32GUI" to not show console, "Console" shows console
-    else:  # Other platforms
-        base = None
+    base = "Win32GUI" if os.name == "nt" else None
     executables = [Executable("spinetoolbox.py", base=base, icon="spinetoolbox/ui/resources/app.ico")]
     setup(
         name="Spine Toolbox",
@@ -125,11 +122,11 @@ def alembic_files(python_dir):
     """
     dest_dir = os.path.join("lib", "spinedb_api", "alembic", "versions")
     p = os.path.join(python_dir, "Lib", "site-packages", "spinedb_api", "alembic", "versions")
-    files = list()
-    for f in os.listdir(p):
-        if f.endswith(".py"):
-            files.append((os.path.abspath(os.path.join(p, f)), os.path.join(dest_dir, f)))
-    return files
+    return [
+        (os.path.abspath(os.path.join(p, f)), os.path.join(dest_dir, f))
+        for f in os.listdir(p)
+        if f.endswith(".py")
+    ]
 
 
 if __name__ == '__main__':

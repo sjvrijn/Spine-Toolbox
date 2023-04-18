@@ -72,7 +72,7 @@ class EngineClient:
             server_public_file = os.path.join(public_keys_dir, "server.key")
             server_public, _ = zmq.auth.load_certificate(server_public_file)
             self.dealer_socket.curve_serverkey = server_public
-        self.dealer_socket.connect(self.protocol + "://" + self.host + ":" + str(self.port))
+        self.dealer_socket.connect(f"{self.protocol}://{self.host}:{str(self.port)}")
         if ping:
             try:
                 self._check_connectivity(1000)  # Ping server
@@ -86,7 +86,7 @@ class EngineClient:
         Args:
             port (str): Port of the PUSH socket on server
         """
-        self.pull_socket.connect(self.protocol + "://" + self.host + ":" + port)
+        self.pull_socket.connect(f"{self.protocol}://{self.host}:{port}")
 
     def rcv_next(self, dealer_or_pull):
         """Polls all sockets and returns a new reply based on given socket 'name'.
@@ -100,10 +100,11 @@ class EngineClient:
                 if dealer_or_pull == "pull":
                     return self.pull_socket.recv_multipart()
                 continue
-            if sockets.get(self.dealer_socket) == zmq.POLLIN:
-                if dealer_or_pull == "dealer":
-                    return self.dealer_socket.recv_multipart()
-                continue
+            if (
+                sockets.get(self.dealer_socket) == zmq.POLLIN
+                and dealer_or_pull == "dealer"
+            ):
+                return self.dealer_socket.recv_multipart()
 
     def _check_connectivity(self, timeout):
         """Pings server, waits for the response, and acts accordingly.
@@ -124,15 +125,14 @@ class EngineClient:
         event = self.dealer_socket.poll(timeout=timeout)
         if event == 0:
             raise RemoteEngineInitFailed("Timeout expired. Pinging the server failed.")
-        else:
-            msg = self.dealer_socket.recv_multipart()
-            response = ServerMessage.parse(msg[1])
-            response_id = int(response.getId())  # Check that request ID matches the response ID
-            if not response_id == random_id:
-                raise RemoteEngineInitFailed(
-                    f"Ping failed. Request Id '{random_id}' does not " f"match reply Id '{response_id}'"
-                )
-            stop_time_ms = round(time.time() * 1000.0)  # debugging
+        msg = self.dealer_socket.recv_multipart()
+        response = ServerMessage.parse(msg[1])
+        response_id = int(response.getId())  # Check that request ID matches the response ID
+        if response_id != random_id:
+            raise RemoteEngineInitFailed(
+                f"Ping failed. Request Id '{random_id}' does not " f"match reply Id '{response_id}'"
+            )
+        stop_time_ms = round(time.time() * 1000.0)  # debugging
         return
 
     def set_start_time(self):
@@ -331,7 +331,7 @@ class EngineClient:
         """Pulls all messages from server, that were the result of sending given data to Spine Engine Server."""
         pull_socket = self._context.socket(zmq.PULL)
         pull_port = self.send_request_to_persistent(data)
-        pull_socket.connect(self.protocol + "://" + self.host + ":" + pull_port)
+        pull_socket.connect(f"{self.protocol}://{self.host}:{pull_port}")
         while True:
             rcv = pull_socket.recv_multipart()
             if rcv == [b"END"]:
@@ -348,13 +348,13 @@ class EngineClient:
         """
         t = round(time.time() * 1000.0) - self.start_time  # ms
         if t <= 1000:
-            return str(t) + " ms"
+            return f"{str(t)} ms"
         elif 1000 < t < 60000:  # 1 < t < 60 s
-            return str(t / 1000) + " s"
+            return f"{str(t / 1000)} s"
         else:
             m = (t / 1000) / 60
             s = (t / 1000) % 60
-            return str(m) + " min " + str(s) + " s"
+            return f"{str(m)} min {str(s)} s"
 
     def close(self):
         """Closes client sockets, context and thread."""

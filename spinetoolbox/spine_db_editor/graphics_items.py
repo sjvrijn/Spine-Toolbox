@@ -79,7 +79,7 @@ class EntityItem(QGraphicsRectItem):
         self.db_mngr = spine_db_editor.db_mngr
         self._db_map_ids = db_map_ids
         self._removed_db_map_ids = ()
-        self.arc_items = list()
+        self.arc_items = []
         self._extent = extent
         self.setRect(-0.5 * self._extent, -0.5 * self._extent, self._extent, self._extent)
         self.setPen(Qt.NoPen)
@@ -160,7 +160,7 @@ class EntityItem(QGraphicsRectItem):
 
     @property
     def db_maps(self):
-        return list(db_map for db_map, _id in self.db_map_ids)
+        return [db_map for db_map, _id in self.db_map_ids]
 
     def entity_class_id(self, db_map):
         return self.db_mngr.get_item(db_map, self.entity_type, self.entity_id(db_map)).get("class_id")
@@ -242,8 +242,7 @@ class EntityItem(QGraphicsRectItem):
         Args:
             factor (float): The zoom factor.
         """
-        if factor > 1:
-            factor = 1
+        factor = min(factor, 1)
         self.setScale(factor)
 
     def apply_rotation(self, angle, center):
@@ -353,12 +352,14 @@ class RelationshipItem(EntityItem):
 
     def default_parameter_data(self):
         """Return data to put as default in a parameter table when this item is selected."""
-        if not self.db_map_ids:
-            return {}
-        return dict(
-            relationship_class_name=self.entity_class_name,
-            object_name_list=DB_ITEM_SEPARATOR.join(self.object_name_list),
-            database=self.first_db_map.codename,
+        return (
+            dict(
+                relationship_class_name=self.entity_class_name,
+                object_name_list=DB_ITEM_SEPARATOR.join(self.object_name_list),
+                database=self.first_db_map.codename,
+            )
+            if self.db_map_ids
+            else {}
         )
 
     @property
@@ -388,12 +389,10 @@ class RelationshipItem(EntityItem):
         )
 
     def _make_tool_tip(self):
-        if not self.first_id:
-            return None
         return (
-            f"""<html><p style="text-align:center;">{self.entity_class_name}<br>"""
-            f"""{DB_ITEM_SEPARATOR.join(self.object_name_list)}<br>"""
-            f"""@{self.display_database}</p></html>"""
+            f"""<html><p style="text-align:center;">{self.entity_class_name}<br>{DB_ITEM_SEPARATOR.join(self.object_name_list)}<br>@{self.display_database}</p></html>"""
+            if self.first_id
+            else None
         )
 
     def _init_bg(self):
@@ -403,7 +402,7 @@ class RelationshipItem(EntityItem):
         self._bg_brush = QGuiApplication.palette().button()
 
     def follow_object_by(self, dx, dy):
-        factor = 1.0 / len(set(arc.obj_item for arc in self.arc_items))
+        factor = 1.0 / len({arc.obj_item for arc in self.arc_items})
         self.moveBy(factor * dx, factor * dy)
 
     def add_arc_item(self, arc_item):
@@ -449,10 +448,14 @@ class ObjectItem(EntityItem):
 
     def default_parameter_data(self):
         """Return data to put as default in a parameter table when this item is selected."""
-        if not self.db_map_ids:
-            return {}
-        return dict(
-            object_class_name=self.entity_class_name, object_name=self.entity_name, database=self.first_db_map.codename
+        return (
+            dict(
+                object_class_name=self.entity_class_name,
+                object_name=self.entity_name,
+                database=self.first_db_map.codename,
+            )
+            if self.db_map_ids
+            else {}
         )
 
     @property
@@ -469,10 +472,10 @@ class ObjectItem(EntityItem):
 
     def update_name(self):
         """Refreshes the name."""
-        db_map_ids_by_name = dict()
+        db_map_ids_by_name = {}
         for db_map, id_ in self.db_map_ids:
             name = self.db_mngr.get_item(db_map, self.entity_type, id_)["name"]
-            db_map_ids_by_name.setdefault(name, list()).append((db_map, id_))
+            db_map_ids_by_name.setdefault(name, []).append((db_map, id_))
         if len(db_map_ids_by_name) == 1:
             name = next(iter(db_map_ids_by_name))
             self.label_item.setPlainText(name)
@@ -482,9 +485,11 @@ class ObjectItem(EntityItem):
         return False
 
     def _make_tool_tip(self):
-        if not self.first_id:
-            return None
-        return f"<html><p style='text-align:center;'>{self.entity_name}<br>@{self.display_database}</html>"
+        return (
+            f"<html><p style='text-align:center;'>{self.entity_name}<br>@{self.display_database}</html>"
+            if self.first_id
+            else None
+        )
 
     def block_move_by(self, dx, dy):
         super().block_move_by(dx, dy)
@@ -584,7 +589,7 @@ class ObjectItem(EntityItem):
         for name, db_map_rel_cls_lst in self._db_map_relationship_class_lists.items():
             for db_map, rel_cls in db_map_rel_cls_lst:
                 icon = self.db_mngr.entity_class_icon(db_map, "relationship_class", rel_cls["id"])
-                action_name = name + "@" + db_map.codename
+                action_name = f"{name}@{db_map.codename}"
                 enabled = set(rel_cls["object_class_id_list"]) <= object_class_ids_in_graph.get(db_map, set())
                 action_name_icon_enabled.append((action_name, icon, enabled))
         for action_name, icon, enabled in sorted(action_name_icon_enabled):
@@ -691,8 +696,7 @@ class ArcItem(QGraphicsPathItem):
         Args:
             factor (float): The zoom factor.
         """
-        if factor < 1:
-            factor = 1
+        factor = max(factor, 1)
         scaled_width = self._width / factor
         self._pen.setWidthF(scaled_width)
         self.setPen(self._pen)

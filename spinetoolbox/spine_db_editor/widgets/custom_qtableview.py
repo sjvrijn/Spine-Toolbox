@@ -235,14 +235,14 @@ class ParameterTableView(ResizingViewMixin, AutoFilterCopyPasteTableView):
     def remove_selected(self):
         """Removes selected indexes."""
         selection = self.selectionModel().selection()
-        rows = list()
+        rows = []
         while not selection.isEmpty():
             current = selection.takeAt(0)
             top = current.top()
             bottom = current.bottom()
             rows += range(top, bottom + 1)
         # Get parameter data grouped by db_map
-        db_map_typed_data = dict()
+        db_map_typed_data = {}
         model = self.model()
         empty_model = model.empty_model
         for row in sorted(rows, reverse=True):
@@ -434,7 +434,7 @@ class PivotTableView(ResizingViewMixin, CopyPasteTableView):
             """
             self._view = view
             self._db_editor = db_editor
-            self._selected_alternative_indexes = list()
+            self._selected_alternative_indexes = []
             self._header_selection_lists = {"alternative": self._selected_alternative_indexes}
             self._remove_alternatives_action = None
             self._menu = QMenu(self._view)
@@ -504,7 +504,7 @@ class PivotTableView(ResizingViewMixin, CopyPasteTableView):
                 horizontal_header (QHeaderView): horizontal header
                 vertical_header (QHeaderView): vertical header
             """
-            self._selected_entity_indexes = list()
+            self._selected_entity_indexes = []
             super().__init__(view, db_editor, horizontal_header, vertical_header)
             self._header_selection_lists["object"] = self._selected_entity_indexes
 
@@ -548,8 +548,9 @@ class PivotTableView(ResizingViewMixin, CopyPasteTableView):
             for index in self._selected_entity_indexes:
                 db_map, object_ids = source_model.db_map_object_ids(index)
                 object_id_list = ",".join([str(id_) for id_ in object_ids])
-                id_ = db_map_relationship_lookup.get(db_map, {}).get(object_id_list)
-                if id_:
+                if id_ := db_map_relationship_lookup.get(db_map, {}).get(
+                    object_id_list
+                ):
                     db_map_typed_data.setdefault(db_map, {}).setdefault("relationship", set()).add(id_)
             self._db_editor.db_mngr.remove_items(db_map_typed_data)
 
@@ -566,8 +567,8 @@ class PivotTableView(ResizingViewMixin, CopyPasteTableView):
                 view (PivotTableView): parent view
                 db_editor (SpineDBEditor): database editor
             """
-            self._selected_parameter_indexes = list()
-            self._selected_value_indexes = list()
+            self._selected_parameter_indexes = []
+            self._selected_value_indexes = []
             self._open_in_editor_action = None
             self._remove_values_action = None
             self._remove_parameters_action = None
@@ -733,8 +734,8 @@ class PivotTableView(ResizingViewMixin, CopyPasteTableView):
                 view (PivotTableView): parent view
                 db_editor (SpineDBEditor): database editor
             """
-            self._selected_scenario_indexes = list()
-            self._selected_scenario_alternative_indexes = list()
+            self._selected_scenario_indexes = []
+            self._selected_scenario_alternative_indexes = []
             self._generate_scenarios_action = None
             self._toggle_alternatives_checked = QAction("Check/uncheck selected")
             self._toggle_alternatives_checked.triggered.connect(self._toggle_checked_state)
@@ -802,7 +803,7 @@ class PivotTableView(ResizingViewMixin, CopyPasteTableView):
             source_model = self._view.source_model
             db_mngr = self._db_editor.db_mngr
             chosen_db_map = None
-            alternatives = list()
+            alternatives = []
             for index in self._selected_alternative_indexes:
                 header_id = source_model._header_id(index)
                 db_map, id_ = header_id
@@ -914,8 +915,7 @@ class PivotTableView(ResizingViewMixin, CopyPasteTableView):
         self._context.show_context_menu(event.globalPos())
 
     def setModel(self, model):
-        old_model = self.model()
-        if old_model:
+        if old_model := self.model():
             old_model.model_data_changed.disconnect(self._fetch_more_timer.start)
             old_model.model_data_changed.disconnect(self._update_header_tables)
             old_model.modelReset.disconnect(self._update_header_tables)
@@ -963,14 +963,14 @@ class PivotTableView(ResizingViewMixin, CopyPasteTableView):
     def _update_header_tables(self):
         # Top
         for header_table in (self._top_header_table, self._top_left_header_table):
-            for i in range(0, self.source_model.headerRowCount()):
+            for i in range(self.source_model.headerRowCount()):
                 header_table.setRowHeight(i, self.rowHeight(i))
                 header_table.setRowHidden(i, False)
             for i in range(self.source_model.headerRowCount(), self.source_model.rowCount()):
                 header_table.setRowHidden(i, True)
         # Left
         for header_table in (self._left_header_table, self._top_left_header_table):
-            for j in range(0, self.source_model.headerColumnCount()):
+            for j in range(self.source_model.headerColumnCount()):
                 header_table.setColumnWidth(j, self.columnWidth(j))
                 header_table.setColumnHidden(j, False)
             for j in range(self.source_model.headerColumnCount(), self.source_model.columnCount()):
@@ -994,8 +994,13 @@ class PivotTableView(ResizingViewMixin, CopyPasteTableView):
             return
         x = self.verticalHeader().width() + self.frameWidth()
         y = self.horizontalHeader().height() + self.frameWidth()
-        header_w = sum(self.columnWidth(j) for j in range(0, self.source_model.headerColumnCount()))
-        header_h = sum(self.rowHeight(i) for i in range(0, self.source_model.headerRowCount()))
+        header_w = sum(
+            self.columnWidth(j)
+            for j in range(self.source_model.headerColumnCount())
+        )
+        header_h = sum(
+            self.rowHeight(i) for i in range(self.source_model.headerRowCount())
+        )
         total_w = self.viewport().width()
         total_h = self.viewport().height()
         self._left_header_table.setGeometry(x, y, header_w, total_h)

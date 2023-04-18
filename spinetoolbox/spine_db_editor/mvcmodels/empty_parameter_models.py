@@ -154,7 +154,7 @@ class EmptyParameterModel(EmptyRowModel):
             dict: mapping DiffDatabaseMapping instance to list of items
         """
         items = [self._make_item(row) for row in rows]
-        db_map_data = dict()
+        db_map_data = {}
         for item in items:
             database = item.pop("database")
             db_map = next(iter(x for x in self.db_mngr.db_maps if x.codename == database), None)
@@ -182,8 +182,8 @@ class EmptyParameterDefinitionModel(
     def add_items_to_db(self, db_map_data):
         """See base class."""
         self.build_lookup_dictionary(db_map_data)
-        db_map_param_def = dict()
-        db_map_error_log = dict()
+        db_map_param_def = {}
+        db_map_error_log = {}
         for db_map, items in db_map_data.items():
             for item in items:
                 def_item, errors = self._convert_to_db(item, db_map)
@@ -262,8 +262,8 @@ class EmptyParameterValueModel(
     def add_items_to_db(self, db_map_data):
         """See base class."""
         self.build_lookup_dictionary(db_map_data)
-        db_map_param_val = dict()
-        db_map_error_log = dict()
+        db_map_param_val = {}
+        db_map_error_log = {}
         for db_map, items in db_map_data.items():
             for item in items:
                 param_val, errors = self._convert_to_db(item, db_map)
@@ -335,8 +335,8 @@ class EmptyRelationshipParameterValueModel(MakeRelationshipOnTheFlyMixin, EmptyP
         super().add_items_to_db(db_map_data)
         # Now we try to add relationships
         self.build_lookup_dictionaries(db_map_data)
-        db_map_relationships = dict()
-        db_map_error_log = dict()
+        db_map_relationships = {}
+        db_map_error_log = {}
         for db_map, items in db_map_data.items():
             for item in items:
                 relationship, err = self._make_relationship_on_the_fly(item, db_map)

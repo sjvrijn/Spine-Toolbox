@@ -54,12 +54,16 @@ class PlotWidget(QWidget):
         self._toolbar = NavigationToolBar(self.canvas, self)
         self._layout.addWidget(self._toolbar)
         self._layout.addWidget(self.canvas)
-        self.original_xy_data = list()
+        self.original_xy_data = []
         QMetaObject.connectSlotsByName(self)
 
     def closeEvent(self, event):
         """Removes the window from plot_windows and closes."""
-        closed = set(name for name, widget in PlotWidget.plot_windows.items() if widget is self)
+        closed = {
+            name
+            for name, widget in PlotWidget.plot_windows.items()
+            if widget is self
+        }
         for name in closed:
             del PlotWidget.plot_windows[name]
         super().closeEvent(event)

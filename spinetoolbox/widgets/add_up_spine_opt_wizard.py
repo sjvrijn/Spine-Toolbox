@@ -135,12 +135,12 @@ class SelectJuliaPage(QWizardPage):
         self.setField("julia_exe", julia_exe)
 
     def _select_julia_project(self):
-        julia_project = QFileDialog.getExistingDirectory(
+        if julia_project := QFileDialog.getExistingDirectory(
             self, "Select Julia project (directory)", self.field("julia_project")
-        )
-        if not julia_project:
+        ):
+            self.setField("julia_project", julia_project)
+        else:
             return
-        self.setField("julia_project", julia_project)
 
     def nextId(self):
         return _PageId.CHECK_PREVIOUS_INSTALL
@@ -204,8 +204,7 @@ class CheckPreviousInstallPage(QWizardPage):
             self._errored = True
             self.completeChanged.emit()
             return
-        spine_opt_version = output_log
-        if spine_opt_version:
+        if spine_opt_version := output_log:
             if [int(x) for x in spine_opt_version.split(".")] >= [
                 int(x) for x in REQUIRED_SPINE_OPT_VERSION.split(".")
             ]:
@@ -256,7 +255,7 @@ class AddUpSpineOptPage(QWizardProcessPage):
         self.completeChanged.emit()
         self._exec_mngr.execution_finished.connect(self._handle_spine_opt_add_up_finished)
         self.msg_success.emit(f"SpineOpt {process} started")
-        cmd = julia_exe + " " + " ".join(args)
+        cmd = f"{julia_exe} " + " ".join(args)
         self.msg.emit(f"$ <b>{cmd}<b/>")
         qApp.setOverrideCursor(QCursor(Qt.BusyCursor))  # pylint: disable=undefined-variable
         self._exec_mngr.start_execution()
@@ -279,9 +278,7 @@ class AddUpSpineOptPage(QWizardProcessPage):
         self.wizard().process_log = self._log.toHtml()
 
     def nextId(self):
-        if self._successful:
-            return _PageId.SUCCESS
-        return _PageId.FAILURE
+        return _PageId.SUCCESS if self._successful else _PageId.FAILURE
 
 
 class SuccessPage(QWizardPage):
@@ -323,9 +320,7 @@ class FailurePage(QWizardPage):
         self.setTitle(f"{process} failed")
 
     def nextId(self):
-        if self.field("troubleshoot"):
-            return _PageId.TROUBLESHOOT_PROBLEMS
-        return -1
+        return _PageId.TROUBLESHOOT_PROBLEMS if self.field("troubleshoot") else -1
 
 
 class TroubleshootProblemsPage(QWizardPage):
@@ -478,7 +473,7 @@ class ResetRegistryPage(QWizardProcessPage):
         self.completeChanged.emit()
         self._exec_mngr.execution_finished.connect(self._handle_registry_reset_finished)
         self.msg_success.emit("Registry reset started")
-        cmd = julia_exe + " " + " ".join(args)
+        cmd = f"{julia_exe} " + " ".join(args)
         self.msg.emit(f"$ <b>{cmd}<b/>")
         qApp.setOverrideCursor(QCursor(Qt.BusyCursor))  # pylint: disable=undefined-variable
         self._exec_mngr.start_execution()
@@ -510,9 +505,7 @@ class ResetRegistryPage(QWizardProcessPage):
 
 class AddUpSpineOptAgainPage(AddUpSpineOptPage):
     def nextId(self):
-        if self._successful:
-            return _PageId.SUCCESS
-        return _PageId.TOTAL_FAILURE
+        return _PageId.SUCCESS if self._successful else _PageId.TOTAL_FAILURE
 
 
 class TotalFailurePage(QWizardPage):

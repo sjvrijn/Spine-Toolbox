@@ -168,20 +168,22 @@ class SelectDirsPage(QWizardPage):
         self._symlink_dir_line_edit.setText(jill_install.default_symlink_dir())
 
     def _select_install_dir(self):
-        install_dir = QFileDialog.getExistingDirectory(
+        if install_dir := QFileDialog.getExistingDirectory(
             self, "Select directory for Julia packages", self.field("install_dir")
-        )
-        if not install_dir:
+        ):
+            self.setField("install_dir", install_dir)
+        else:
             return
-        self.setField("install_dir", install_dir)
 
     def _select_symlink_dir(self):
-        symlink_dir = QFileDialog.getExistingDirectory(
-            self, "Select directory for Julia executable", self.field("symlink_dir")
-        )
-        if not symlink_dir:
+        if symlink_dir := QFileDialog.getExistingDirectory(
+            self,
+            "Select directory for Julia executable",
+            self.field("symlink_dir"),
+        ):
+            self.setField("symlink_dir", symlink_dir)
+        else:
             return
-        self.setField("symlink_dir", symlink_dir)
 
     def nextId(self):
         return _PageId.INSTALL
@@ -218,7 +220,7 @@ class InstallJuliaPage(QWizardProcessPage):
         self.completeChanged.emit()
         self._exec_mngr.execution_finished.connect(self._handle_julia_install_finished)
         self.msg_success.emit("Julia installation started")
-        cmd = python + " " + " ".join(args)
+        cmd = f"{python} " + " ".join(args)
         self.msg.emit(f"$ <b>{cmd}<b/>")
         qApp.setOverrideCursor(QCursor(Qt.BusyCursor))  # pylint: disable=undefined-variable
         self._exec_mngr.start_execution()
@@ -239,9 +241,7 @@ class InstallJuliaPage(QWizardProcessPage):
         self.msg_error.emit("Julia installation failed")
 
     def nextId(self):
-        if self.wizard().julia_exe is not None:
-            return _PageId.SUCCESS
-        return _PageId.FAILURE
+        return _PageId.FAILURE if self.wizard().julia_exe is None else _PageId.SUCCESS
 
 
 class SuccessPage(QWizardPage):

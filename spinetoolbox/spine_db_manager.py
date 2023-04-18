@@ -105,7 +105,7 @@ class SpineDBManager(QObject):
         self._db_maps = {}
         self.db_map_locks = {}
         self._workers = {}
-        self.listeners = dict()
+        self.listeners = {}
         self.undo_stack = {}
         self.undo_action = {}
         self.redo_action = {}
@@ -578,7 +578,7 @@ class SpineDBManager(QObject):
         self.deleteLater()
 
     def refresh_session(self, *db_maps):
-        refreshed_db_maps = set(db_map for db_map in db_maps if db_map in self.db_maps)
+        refreshed_db_maps = {db_map for db_map in db_maps if db_map in self.db_maps}
         if not refreshed_db_maps:
             return
         for db_map in refreshed_db_maps:
@@ -773,13 +773,9 @@ class SpineDBManager(QObject):
         if isinstance(parsed_data, TimeSeriesFixedResolution):
             resolution = [relativedelta_to_duration(r) for r in parsed_data.resolution]
             resolution = ', '.join(resolution)
-            tool_tip_data = "Start: {}, resolution: [{}], length: {}".format(
-                parsed_data.start, resolution, len(parsed_data)
-            )
+            tool_tip_data = f"Start: {parsed_data.start}, resolution: [{resolution}], length: {len(parsed_data)}"
         elif isinstance(parsed_data, TimeSeriesVariableResolution):
-            tool_tip_data = "Start: {}, resolution: variable, length: {}".format(
-                parsed_data.indexes[0], len(parsed_data)
-            )
+            tool_tip_data = f"Start: {parsed_data.indexes[0]}, resolution: variable, length: {len(parsed_data)}"
         elif isinstance(parsed_data, ParameterValueFormatError):
             tool_tip_data = str(parsed_data)
         else:
@@ -794,7 +790,7 @@ class SpineDBManager(QObject):
         if not list_value:
             return value
         index = list_value["index"]
-        formatted_value = "[" + str(index) + "] " + value
+        formatted_value = f"[{str(index)}] {value}"
         if item_type != "list_value":
             value_list_name = self.get_item(db_map, "parameter_value_list", list_value["parameter_value_list_id"])[
                 "name"
@@ -871,9 +867,7 @@ class SpineDBManager(QObject):
             if isinstance(parsed_value, str):
                 return int(Qt.AlignLeft | Qt.AlignVCenter)
             return int(Qt.AlignRight | Qt.AlignVCenter)
-        if role == PARSED_ROLE:
-            return parsed_value
-        return None
+        return parsed_value if role == PARSED_ROLE else None
 
     def get_value_indexes(self, db_map, item_type, id_):
         """Returns the value or default value indexes of a parameter.
@@ -884,9 +878,7 @@ class SpineDBManager(QObject):
             id_ (int): The parameter_value or definition id
         """
         parsed_value = self.get_value(db_map, item_type, id_, role=PARSED_ROLE)
-        if isinstance(parsed_value, IndexedValue):
-            return parsed_value.indexes
-        return [""]
+        return parsed_value.indexes if isinstance(parsed_value, IndexedValue) else [""]
 
     def get_value_index(self, db_map, item_type, id_, index, role=Qt.ItemDataRole.DisplayRole):
         """Returns the value or default value of a parameter for a given index.
@@ -907,9 +899,7 @@ class SpineDBManager(QObject):
             return self.display_data_from_parsed(parsed_value)
         if role == Qt.ItemDataRole.ToolTipRole:
             return self.tool_tip_data_from_parsed(parsed_value)
-        if role == PARSED_ROLE:
-            return parsed_value
-        return None
+        return parsed_value if role == PARSED_ROLE else None
 
     def get_value_list_item(self, db_map, id_, index, role=Qt.ItemDataRole.DisplayRole, only_visible=True):
         """Returns one value item of a parameter_value_list.
@@ -942,9 +932,7 @@ class SpineDBManager(QObject):
 
     def get_scenario_alternative_id_list(self, db_map, scen_id, only_visible=True):
         scenario = self.get_item(db_map, "scenario", scen_id, only_visible=only_visible)
-        if not scenario:
-            return []
-        return scenario["alternative_id_list"]
+        return scenario["alternative_id_list"] if scenario else []
 
     def import_data(self, db_map_data, command_text="Import data"):
         """Imports the given data into given db maps using the dedicated import functions from spinedb_api.
@@ -955,7 +943,7 @@ class SpineDBManager(QObject):
                 to `get_data_for_import`
             command_text (str, optional): What to call the command that condenses the operation.
         """
-        db_map_error_log = dict()
+        db_map_error_log = {}
         for db_map, data in db_map_data.items():
             make_cache = lambda *args, db_map=db_map, **kwargs: self.get_db_map_cache(db_map)
             try:
@@ -1422,7 +1410,7 @@ class SpineDBManager(QObject):
 
     @staticmethod
     def db_map_class_ids(db_map_data):
-        d = dict()
+        d = {}
         for db_map, items in db_map_data.items():
             for item in items:
                 d.setdefault((db_map, item["class_id"]), set()).add(item["id"])
@@ -1430,7 +1418,7 @@ class SpineDBManager(QObject):
 
     def find_cascading_relationship_classes(self, db_map_ids, only_visible=True):
         """Finds and returns cascading relationship classes for the given object_class ids."""
-        db_map_cascading_data = dict()
+        db_map_cascading_data = {}
         for db_map, object_class_ids in db_map_ids.items():
             for item in self.get_items(db_map, "relationship_class", only_visible=only_visible):
                 if set(item["object_class_id_list"]) & set(object_class_ids):
@@ -1439,7 +1427,7 @@ class SpineDBManager(QObject):
 
     def find_cascading_relationships(self, db_map_ids, only_visible=True):
         """Finds and returns cascading relationships for the given object ids."""
-        db_map_cascading_data = dict()
+        db_map_cascading_data = {}
         for db_map, object_ids in db_map_ids.items():
             for item in self.get_items(db_map, "relationship", only_visible=only_visible):
                 if set(item["object_id_list"]) & set(object_ids):
@@ -1448,7 +1436,7 @@ class SpineDBManager(QObject):
 
     def find_cascading_parameter_data(self, db_map_ids, item_type, only_visible=True):
         """Finds and returns cascading parameter definitions or values for the given entity_class ids."""
-        db_map_cascading_data = dict()
+        db_map_cascading_data = {}
         for db_map, entity_class_ids in db_map_ids.items():
             for item in self.get_items(db_map, item_type, only_visible=only_visible):
                 if item["entity_class_id"] in entity_class_ids:
@@ -1457,7 +1445,7 @@ class SpineDBManager(QObject):
 
     def find_cascading_parameter_values_by_entity(self, db_map_ids, only_visible=True):
         """Finds and returns cascading parameter values for the given entity ids."""
-        db_map_cascading_data = dict()
+        db_map_cascading_data = {}
         for db_map, entity_ids in db_map_ids.items():
             for item in self.get_items(db_map, "parameter_value", only_visible=only_visible):
                 if item["entity_id"] in entity_ids:
@@ -1466,7 +1454,7 @@ class SpineDBManager(QObject):
 
     def find_cascading_parameter_values_by_definition(self, db_map_ids, only_visible=True):
         """Finds and returns cascading parameter values for the given parameter_definition ids."""
-        db_map_cascading_data = dict()
+        db_map_cascading_data = {}
         for db_map, param_def_ids in db_map_ids.items():
             for item in self.get_items(db_map, "parameter_value", only_visible=only_visible):
                 if item["parameter_id"] in param_def_ids:
@@ -1475,7 +1463,7 @@ class SpineDBManager(QObject):
 
     def find_cascading_scenario_alternatives_by_scenario(self, db_map_ids, only_visible=True):
         """Finds and returns cascading scenario alternatives for the given scenario ids."""
-        db_map_cascading_data = dict()
+        db_map_cascading_data = {}
         for db_map, ids in db_map_ids.items():
             for item in self.get_items(db_map, "scenario_alternative", only_visible=only_visible):
                 if item["scenario_id"] in ids:
@@ -1484,7 +1472,7 @@ class SpineDBManager(QObject):
 
     def find_groups_by_entity(self, db_map_ids, only_visible=True):
         """Finds and returns groups for the given entity ids."""
-        db_map_group_data = dict()
+        db_map_group_data = {}
         for db_map, entity_ids in db_map_ids.items():
             for item in self.get_items(db_map, "entity_group", only_visible=only_visible):
                 if item["entity_id"] in entity_ids:

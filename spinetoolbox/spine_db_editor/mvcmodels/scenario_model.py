@@ -115,10 +115,7 @@ class ScenarioModel(TreeModelBase):
         db_item = self.db_item(parent_item)
         if db_map != db_item.db_map:
             return False
-        if data.hasFormat("application/vnd.spinetoolbox.scenario-alternative"):
-            # Check that reordering only happens within the same scenario
-            return False
-        return True
+        return not data.hasFormat("application/vnd.spinetoolbox.scenario-alternative")
 
     def dropMimeData(self, data, drop_action, row, column, parent):
         # This function expects that data has be verified by canDropMimeData() already.

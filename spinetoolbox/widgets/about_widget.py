@@ -48,21 +48,11 @@ class AboutWidget(QWidget):
         self.setWindowFlags(Qt.WindowType.Popup)
         # Ensure this window gets garbage-collected when closed
         self.setAttribute(Qt.WA_DeleteOnClose)
-        full_version = (
-            str(spinetoolbox.__version_info__.major)
-            + "."
-            + str(spinetoolbox.__version_info__.minor)
-            + "."
-            + str(spinetoolbox.__version_info__.micro)
-            + "-"
-            + spinetoolbox.__version_info__.releaselevel
-            + "."
-            + str(spinetoolbox.__version_info__.serial)
-        )
-        self.v_spinetoolbox = spinetoolbox.__version__
+        full_version = f"{str(spinetoolbox.__version_info__.major)}.{str(spinetoolbox.__version_info__.minor)}.{str(spinetoolbox.__version_info__.micro)}-{spinetoolbox.__version_info__.releaselevel}.{str(spinetoolbox.__version_info__.serial)}"
         self.v_spinedb_api = spinedb_api.__version__
         self.v_spine_engine = spine_engine.__version__
         self.v_spine_items = spine_items.__version__
+        self.v_spinetoolbox = spinetoolbox.__version__
         self.import_path_spinetoolbox, _ = os.path.split(spinetoolbox.__file__)
         self.import_path_spinedb_api, _ = os.path.split(spinedb_api.__file__)
         self.import_path_spine_engine, _ = os.path.split(spine_engine.__file__)
@@ -107,8 +97,7 @@ class AboutWidget(QWidget):
         mw_center = self.parent().frameGeometry().center()
         about_x = mw_center.x() - self.frameGeometry().width() / 2
         about_y = mw_center.y() - self.frameGeometry().height() / 2
-        about_topleft = QPoint(about_x, about_y)
-        return about_topleft
+        return QPoint(about_x, about_y)
 
     def setup_license_text(self):
         """Add license to QTextBrowser."""
@@ -133,7 +122,7 @@ class AboutWidget(QWidget):
         Args:
             e (QKeyEvent): Received key press event.
         """
-        if e.key() == Qt.Key_Escape or e.key() == Qt.Key_Enter or e.key() == Qt.Key_Return or e.key() == Qt.Key_Space:
+        if e.key() in [Qt.Key_Escape, Qt.Key_Enter, Qt.Key_Return, Qt.Key_Space]:
             self.close()
 
     def closeEvent(self, event=None):

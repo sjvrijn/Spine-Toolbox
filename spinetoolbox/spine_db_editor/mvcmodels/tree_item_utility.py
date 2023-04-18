@@ -93,8 +93,7 @@ class GrayIfLastMixin:
         if role == Qt.ForegroundRole and self.child_number() == self.parent_item.child_count() - 1:
             gray_color = QGuiApplication.palette().text().color()
             gray_color.setAlpha(128)
-            gray_brush = QBrush(gray_color)
-            return gray_brush
+            return QBrush(gray_color)
         return super().data(column, role)
 
 
@@ -132,10 +131,12 @@ class SortChildrenMixin:
     def insert_children_sorted(self, children):
         for child in children:
             child.parent_item = self
-        for chunk, pos in bisect_chunks(self.non_empty_children, children, key=self._children_sort_key):
-            if not super().insert_children(pos, chunk):
-                return False
-        return True
+        return all(
+            super().insert_children(pos, chunk)
+            for chunk, pos in bisect_chunks(
+                self.non_empty_children, children, key=self._children_sort_key
+            )
+        )
 
     def _resort(self):
         # FIXME MM Needed?
@@ -207,10 +208,11 @@ class FetchMoreMixin:
 
     def handle_items_removed(self, db_map_data):
         ids = {x["id"] for x in db_map_data.get(self.db_map, [])}
-        removed_rows = []
-        for row, leaf_item in enumerate(self.children):
-            if leaf_item.id and leaf_item.id in ids:
-                removed_rows.append(row)
+        removed_rows = [
+            row
+            for row, leaf_item in enumerate(self.children)
+            if leaf_item.id and leaf_item.id in ids
+        ]
         for row in sorted(removed_rows, reverse=True):
             self.remove_children(row, 1)
 
@@ -298,9 +300,11 @@ class LeafItem(StandardTreeItem):
 
     @property
     def item_data(self):
-        if not self.id:
-            return self._make_item_data()
-        return self.db_mngr.get_item(self.db_map, self.item_type, self.id)
+        return (
+            self.db_mngr.get_item(self.db_map, self.item_type, self.id)
+            if self.id
+            else self._make_item_data()
+        )
 
     @property
     def name(self):

@@ -64,7 +64,7 @@ class KernelEditorBase(QDialog):
         self._rebuild_ijulia_process = None
         self._install_julia_kernel_process = None
         self._ready_to_install_kernel = False
-        self.old_kernel_names = list()
+        self.old_kernel_names = []
         self.python_or_julia = python_or_julia
         # Set up
         self.setAttribute(Qt.WA_DeleteOnClose)
@@ -102,14 +102,14 @@ class KernelEditorBase(QDialog):
             else:
                 self._logger.msg_error.emit("Julia executable missing")
             return False
-        if not file_is_valid(
-            self,
-            prgm,
-            f"Invalid {'Python Interpreter' if python_or_julia == 'python' else 'Julia Executable'}",
-            extra_check=python_or_julia,
-        ):
-            return False
-        return True
+        return bool(
+            file_is_valid(
+                self,
+                prgm,
+                f"Invalid {'Python Interpreter' if python_or_julia == 'python' else 'Julia Executable'}",
+                extra_check=python_or_julia,
+            )
+        )
 
     def _python_kernel_name(self):
         raise NotImplementedError()
@@ -134,7 +134,7 @@ class KernelEditorBase(QDialog):
         kernel_name = self._python_kernel_name()
         kernel_display_name = self._python_kernel_display_name()
         if kernel_display_name == "":
-            kernel_display_name = kernel_name + "_spinetoolbox"  # Default display name if not given
+            kernel_display_name = f"{kernel_name}_spinetoolbox"
         if not self.check_options(prgm, kernel_name, kernel_display_name, "python"):
             return False
         # Check if ipykernel is installed
@@ -642,7 +642,9 @@ class KernelEditor(KernelEditorBase):
     @Slot(str)
     def python_kernel_name_edited(self, txt):
         """Updates the display name place holder text and the command QCustomLabel tool tip."""
-        self.ui.lineEdit_python_kernel_display_name.setPlaceholderText(txt + "_spinetoolbox")
+        self.ui.lineEdit_python_kernel_display_name.setPlaceholderText(
+            f"{txt}_spinetoolbox"
+        )
         self.update_python_cmd_tooltip()
 
     @Slot(bool)
@@ -670,11 +672,10 @@ class KernelEditor(KernelEditorBase):
         if kernel_name == "":
             kernel_name = "NA"
             kernel_display_name = "NA"
+        elif self.ui.lineEdit_python_kernel_display_name.text() == "":
+            kernel_display_name = self.ui.lineEdit_python_kernel_display_name.placeholderText()
         else:
-            if self.ui.lineEdit_python_kernel_display_name.text() == "":
-                kernel_display_name = self.ui.lineEdit_python_kernel_display_name.placeholderText()
-            else:
-                kernel_display_name = self.ui.lineEdit_python_kernel_display_name.text()
+            kernel_display_name = self.ui.lineEdit_python_kernel_display_name.text()
         tip = (
             interpreter
             + " -m ipykernel install --user --name "
@@ -747,10 +748,17 @@ class KernelEditor(KernelEditorBase):
         Returns:
             int: Column number or -1 if label not found
         """
-        for column in range(self.kernel_list_model.columnCount()):
-            if self.kernel_list_model.headerData(column, Qt.Orientation.Horizontal) == label:
-                return column
-        return -1
+        return next(
+            (
+                column
+                for column in range(self.kernel_list_model.columnCount())
+                if self.kernel_list_model.headerData(
+                    column, Qt.Orientation.Horizontal
+                )
+                == label
+            ),
+            -1,
+        )
 
     def check_options(self, prgm, kernel_name, display_name, python_or_julia):
         if not super().check_options(prgm, kernel_name, display_name, python_or_julia):
@@ -923,9 +931,7 @@ class KernelEditor(KernelEditorBase):
                 language = ""
             try:
                 exe = kernel_dict["argv"][0]
-            except KeyError:
-                exe = ""
-            except IndexError:
+            except (KeyError, IndexError):
                 exe = ""
             try:
                 display_name = kernel_dict["display_name"]
@@ -966,7 +972,7 @@ class KernelEditor(KernelEditorBase):
             msg = f"Path <br><br>{kernel_json}<br><br>does not exist.<br>Consider removing the kernel manually."
             QMessageBox.warning(self, "Opening kernel.json failed", msg)
             return
-        url = "file:///" + kernel_json
+        url = f"file:///{kernel_json}"
         res = open_url(url)
         if not res:
             msg = f"Opening file {kernel_json} failed."
@@ -986,7 +992,7 @@ class KernelEditor(KernelEditorBase):
             # noinspection PyCallByClass, PyArgumentList
             QMessageBox.warning(self, "Opening directory failed", msg)
             return
-        url = "file:///" + d
+        url = f"file:///{d}"
         res = open_url(url)
         if not res:
             msg = f"Opening directory {d} failed."
@@ -1126,7 +1132,7 @@ class MiniKernelEditorBase(KernelEditorBase):
         self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Cancel).setVisible(False)
         for widget, cursor in self._cursors.items():
             widget.setCursor(cursor)
-        msg = "Done" if not failed else "Failed"
+        msg = "Failed" if failed else "Done"
         self.ui.label_message.setText(self.ui.label_message.text() + msg)
 
     def make_kernel(self):
@@ -1208,14 +1214,12 @@ class MiniJuliaKernelEditor(MiniKernelEditorBase):
 def find_kernels():
     """Returns a dictionary mapping kernel names to kernel paths."""
     kernels = find_kernel_specs()
-    if not kernels:
-        return dict()
-    return kernels
+    return kernels if kernels else {}
 
 
 def find_python_kernels():
     """Returns a dictionary of Python kernels. Keys are kernel_names, values are kernel paths."""
-    python_kernels = dict()
+    python_kernels = {}
     for kernel_name, location in find_kernels().items():
         d = KernelEditor.get_kernel_deats(location)
         if d["language"].lower().strip() == "python":
@@ -1225,7 +1229,7 @@ def find_python_kernels():
 
 def find_julia_kernels():
     """Returns a dictionary of Julia kernels. Keys are kernel_names, values are kernel paths."""
-    julia_kernels = dict()
+    julia_kernels = {}
     for kernel_name, location in find_kernels().items():
         d = KernelEditor.get_kernel_deats(location)
         if d["language"].lower().strip() == "julia":
@@ -1239,8 +1243,7 @@ def find_unknown_kernels():
     p = find_python_kernels()
     j = find_julia_kernels()
     remains1 = dict(set(all_kernels.items()) ^ set(p.items()))  # remains after removing python kernels
-    remains2 = dict(set(remains1.items()) ^ set(j.items()))  # Remains after removing python and julia kernels
-    return remains2
+    return dict(set(remains1.items()) ^ set(j.items()))
 
 
 def format_event_message(msg_type, message, show_datetime=True):

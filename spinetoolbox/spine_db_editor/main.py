@@ -33,8 +33,7 @@ def main():
     else:
         editor.add_new_tab({url: None for url in args.url})
     editor.show()
-    return_code = app.exec()
-    return return_code
+    return app.exec()
 
 
 def _make_argument_parser():

@@ -33,7 +33,7 @@ class Column(IntEnum):
 
     @staticmethod
     def max():
-        return max(c for c in Column)
+        return max(Column)
 
 
 FLAGS_FIXED = Qt.ItemIsEnabled | Qt.ItemIsSelectable
@@ -377,8 +377,11 @@ class MetadataTableModelBase(QAbstractTableModel):
                     continue
                 self._set_extra_columns(row, id_)
                 id_update_rows.add(i)
-            ids_to_insert = {id_ for ids_by_name in unique_identifiers.values() for id_ in ids_by_name.values()}
-            if ids_to_insert:
+            if ids_to_insert := {
+                id_
+                for ids_by_name in unique_identifiers.values()
+                for id_ in ids_by_name.values()
+            }:
                 added = [
                     [i[self._ITEM_NAME_KEY], i[self._ITEM_VALUE_KEY], db_map] + self._extra_cells_from_added_item(i)
                     for i in items
@@ -468,12 +471,10 @@ class MetadataTableModelBase(QAbstractTableModel):
         Returns:
             DiffDatabaseMapping: database mapping or None if not found
         """
-        match = None
-        for db_map in self._db_maps:
-            if codename == db_map.codename:
-                match = db_map
-                break
-        return match
+        return next(
+            (db_map for db_map in self._db_maps if codename == db_map.codename),
+            None,
+        )
 
     def _reserved_metadata(self):
         """Collects metadata names and values that are already in database.
@@ -489,8 +490,6 @@ class MetadataTableModelBase(QAbstractTableModel):
             name = row[Column.NAME]
             if not name:
                 continue
-            value = row[Column.VALUE]
-            if not value:
-                continue
-            reserved.setdefault(db_map, {})[name] = value
+            if value := row[Column.VALUE]:
+                reserved.setdefault(db_map, {})[name] = value
         return reserved

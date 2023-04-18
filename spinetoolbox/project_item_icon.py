@@ -291,7 +291,11 @@ class ProjectItemIcon(QGraphicsPathItem):
     def mousePressEvent(self, event):
         """Updates scene's icon group."""
         super().mousePressEvent(event)
-        icon_group = set(x for x in self.scene().selectedItems() if isinstance(x, ProjectItemIcon)) | {self}
+        icon_group = {
+            x
+            for x in self.scene().selectedItems()
+            if isinstance(x, ProjectItemIcon)
+        } | {self}
         for icon in icon_group:
             icon.previous_pos = icon.scenePos()
         self.scene().icon_group = icon_group
@@ -302,9 +306,12 @@ class ProjectItemIcon(QGraphicsPathItem):
         if not scene:
             return
         icon_group = scene.icon_group | {self}
-        scene.dirty_links |= set(
-            link for icon in icon_group for conn in icon.connectors.values() for link in conn.links
-        )
+        scene.dirty_links |= {
+            link
+            for icon in icon_group
+            for conn in icon.connectors.values()
+            for link in conn.links
+        }
 
     def mouseReleaseEvent(self, event):
         """Clears pre-bump rects, and pushes a move icon command if necessary."""
@@ -448,7 +455,7 @@ class ConnectorButton(QGraphicsPathItem):
         self._parent = parent
         self._toolbox = toolbox
         self.position = position
-        self.links = list()
+        self.links = []
         self.setBrush(self.brush)
         parent_rect = parent.rect()
         extent = 0.2 * parent_rect.width()
@@ -644,7 +651,7 @@ class ExclamationIcon(QGraphicsTextItem):
         """
         super().__init__(parent)
         self._parent = parent
-        self._notifications = list()
+        self._notifications = []
         font = QFont('Font Awesome 5 Free Solid')
         font.setPixelSize(self.FONT_SIZE_PIXELS)
         self.setFont(font)

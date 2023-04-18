@@ -28,9 +28,11 @@ class TimeSeriesModelVariableResolution(IndexedValueTableModel):
 
     def flags(self, index):
         """Returns the flags for given model index."""
-        if not index.isValid():
-            return Qt.NoItemFlags
-        return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return (
+            Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+            if index.isValid()
+            else Qt.NoItemFlags
+        )
 
     @property
     def indexes(self):
@@ -170,8 +172,8 @@ class TimeSeriesModelVariableResolution(IndexedValueTableModel):
             indexes (Sequence): a sequence of model indexes
             values (Sequence): a sequence of datetimes/floats corresponding to the indexes
         """
-        modified_rows = list()
-        modified_columns = list()
+        modified_rows = []
+        modified_columns = []
         for index, value in zip(indexes, values):
             row = index.row()
             modified_rows.append(row)

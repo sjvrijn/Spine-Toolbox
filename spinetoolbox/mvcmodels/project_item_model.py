@@ -96,9 +96,11 @@ class ProjectItemModel(QAbstractItemModel):
         Returns:
             int: Number of children of given parent
         """
-        if not parent.isValid():  # Number of category items (children of root)
-            return self.root().child_count()
-        return parent.internalPointer().child_count()
+        return (
+            parent.internalPointer().child_count()
+            if parent.isValid()
+            else self.root().child_count()
+        )
 
     def columnCount(self, parent=QModelIndex()):
         """Returns model column count which is always 1."""
@@ -122,13 +124,14 @@ class ProjectItemModel(QAbstractItemModel):
             QModelIndex: Index of parent item
         """
         item = self.item(index)
-        parent_item = item.parent()
-        if not parent_item:
+        if parent_item := item.parent():
+            return (
+                QModelIndex()
+                if parent_item == self.root()
+                else self.createIndex(parent_item.row(), 0, parent_item)
+            )
+        else:
             return QModelIndex()
-        if parent_item == self.root():
-            return QModelIndex()
-        # logging.debug("parent_item: {0}".format(parent_item.name))
-        return self.createIndex(parent_item.row(), 0, parent_item)
 
     def index(self, row, column, parent=QModelIndex()):
         """Returns index of item with given row, column, and parent.
@@ -147,9 +150,7 @@ class ProjectItemModel(QAbstractItemModel):
             return QModelIndex()
         parent_item = self.item(parent)
         child = parent_item.child(row)
-        if not child:
-            return QModelIndex()
-        return self.createIndex(row, column, child)
+        return self.createIndex(row, column, child) if child else QModelIndex()
 
     def data(self, index, role=None):
         """Returns data in the given index according to requested role.
@@ -173,11 +174,10 @@ class ProjectItemModel(QAbstractItemModel):
             # item is a LeafProjectTreeItem
             icon_path = item.project_item.get_icon().icon_file
             return QIcon(icon_path)
-        if role == Qt.ItemDataRole.FontRole:
-            if not hasattr(item, "project_item"):
-                bold_font = QFont()
-                bold_font.setBold(True)
-                return bold_font
+        if role == Qt.ItemDataRole.FontRole and not hasattr(item, "project_item"):
+            bold_font = QFont()
+            bold_font.setBold(True)
+            return bold_font
         return None
 
     def item(self, index):
@@ -190,9 +190,7 @@ class ProjectItemModel(QAbstractItemModel):
             RootProjectTreeItem, CategoryProjectTreeItem or LeafProjectTreeItem: Item at given index or root project
                 item if index is not valid
         """
-        if not index.isValid():
-            return self.root()
-        return index.internalPointer()
+        return index.internalPointer() if index.isValid() else self.root()
 
     def find_category(self, category_name):
         """Returns the index of the given category name.
@@ -242,9 +240,7 @@ class ProjectItemModel(QAbstractItemModel):
             LeafProjectTreeItem, NoneType
         """
         ind = self.find_item(name)
-        if ind is None:
-            return None
-        return self.item(ind)
+        return None if ind is None else self.item(ind)
 
     def category_of_item(self, name):
         """Returns the category item of the category that contains project item with given name
@@ -310,14 +306,14 @@ class ProjectItemModel(QAbstractItemModel):
             or if an unknown category name was given.
         """
         if not category_name:
-            items = list()
+            items = []
             for category in self.root().children():
                 items += category.children()
             return items
         category_index = self.find_category(category_name)
         if not category_index:
             logging.error("Category item '%s' not found", category_name)
-            return list()
+            return []
         return category_index.internalPointer().children()
 
     def n_items(self):

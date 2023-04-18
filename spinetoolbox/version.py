@@ -35,9 +35,9 @@ class VersionInfo(NamedTuple):
         if self.releaselevel == 'final':  # pylint: disable=no-else-return
             return version
         elif self.releaselevel.startswith('dev'):
-            return version + f".dev{self.serial}"
+            return f"{version}.dev{self.serial}"
         else:
-            return version + f"-{self.releaselevel}.{self.serial}"
+            return f"{version}-{self.releaselevel}.{self.serial}"
 
 
 major = 0

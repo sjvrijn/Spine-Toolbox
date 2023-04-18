@@ -276,9 +276,7 @@ class SpineDBWorker(QObject):
                         added_count += 1
                 if added_count == parent.chunk_size:
                     break
-        if parent.chunk_size is None:
-            return False
-        return added_count > 0
+        return False if parent.chunk_size is None else added_count > 0
 
     def _bind_item(self, parent, item):
         item.readd_callbacks.add(self._make_add_item_callback(parent))
@@ -345,9 +343,15 @@ class SpineDBWorker(QObject):
         self._reset_fetching_if_required(parent)
         self._register_fetch_parent(parent)
         parent.set_busy(True)
-        if not self._iterate_cache(parent) and not parent.is_fetched:
-            if not self._advance_query(parent.fetch_item_type, callback=lambda: self._handle_query_advanced(parent)):
-                parent.set_busy(False)
+        if (
+            not self._iterate_cache(parent)
+            and not parent.is_fetched
+            and not self._advance_query(
+                parent.fetch_item_type,
+                callback=lambda: self._handle_query_advanced(parent),
+            )
+        ):
+            parent.set_busy(False)
 
     def _handle_query_advanced(self, parent):
         if parent.position(self._db_map) < len(self._fetched_ids.get(parent.fetch_item_type, ())):
@@ -386,7 +390,9 @@ class SpineDBWorker(QObject):
         if item_type == "entity_group":  # FIXME: the entity_group table has no commit_id column :(
             return
         for item in items:
-            self.commit_cache.setdefault(item["commit_id"], {}).setdefault(item_type, list()).append(item["id"])
+            self.commit_cache.setdefault(item["commit_id"], {}).setdefault(
+                item_type, []
+            ).append(item["id"])
 
     def close_db_map(self):
         _ = self._executor.submit(self._close_db_map).result()

@@ -102,7 +102,7 @@ class TreeViewMixin:
         Returns:
             dict: lists of dictionary items keyed by DiffDatabaseMapping
         """
-        d = dict()
+        d = {}
         for index in indexes:
             item = index.model().item_from_index(index)
             for db_map in item.db_maps:

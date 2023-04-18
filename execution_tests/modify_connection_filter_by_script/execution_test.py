@@ -28,7 +28,7 @@ class ModifyConnectionFilterByScript(unittest.TestCase):
         self._database_path.parent.mkdir(parents=True, exist_ok=True)
         if self._database_path.exists():
             self._database_path.unlink()
-        url = "sqlite:///" + str(self._database_path)
+        url = f"sqlite:///{str(self._database_path)}"
         db_map = DiffDatabaseMapping(url, create=True)
         import_object_classes(db_map, ("object_class",))
         import_objects(db_map, (("object_class", "object"),))
@@ -74,7 +74,7 @@ class ModifyConnectionFilterByScript(unittest.TestCase):
         self.assertTrue(out_path.exists())
         with open(out_path, encoding="utf-8") as out_file:
             reader = csv.reader(out_file)
-            contents = [r for r in reader]
+            contents = list(reader)
         self.assertEqual(contents, expected_file_contests)
 
     @staticmethod

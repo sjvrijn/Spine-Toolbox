@@ -28,15 +28,11 @@ class AgedUndoStack(QUndoStack):
 
     @property
     def redo_age(self):
-        if self.canRedo():
-            return self.command(self.index()).age
-        return -1
+        return self.command(self.index()).age if self.canRedo() else -1
 
     @property
     def undo_age(self):
-        if self.canUndo():
-            return self.command(self.index() - 1).age
-        return -1
+        return self.command(self.index() - 1).age if self.canUndo() else -1
 
     def commands(self):
         return [self.command(i) for i in range(self.index())]

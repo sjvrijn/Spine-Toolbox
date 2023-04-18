@@ -562,21 +562,23 @@ class PersistentConsoleWidget(QPlainTextEdit):
         """Returns a new local or remote spine engine manager or
         an existing remote spine engine manager.
         Returns None if connecting to Spine Engine Server fails."""
-        exec_remotely = self._toolbox.qsettings().value("engineSettings/remoteExecutionEnabled", "false") == "true"
-        if exec_remotely:
-            if self.engine_mngr:
-                return self.engine_mngr
-            self.engine_mngr = make_engine_manager(exec_remotely)
-            host, port, security, sec_folder = self._toolbox.engine_server_settings()
-            try:
-                self.engine_mngr.make_engine_client(host, port, security, sec_folder)
-            except RemoteEngineInitFailed as e:
-                self._toolbox.msg_error.emit(f"Connecting to Spine Engine Server failed. {e}")
-                return None
+        if not (
+            exec_remotely := self._toolbox.qsettings().value(
+                "engineSettings/remoteExecutionEnabled", "false"
+            )
+            == "true"
+        ):
+            return make_engine_manager(exec_remotely)
+        if self.engine_mngr:
             return self.engine_mngr
-        else:
-            engine_mngr = make_engine_manager(exec_remotely)
-            return engine_mngr
+        self.engine_mngr = make_engine_manager(exec_remotely)
+        host, port, security, sec_folder = self._toolbox.engine_server_settings()
+        try:
+            self.engine_mngr.make_engine_client(host, port, security, sec_folder)
+        except RemoteEngineInitFailed as e:
+            self._toolbox.msg_error.emit(f"Connecting to Spine Engine Server failed. {e}")
+            return None
+        return self.engine_mngr
 
     def _issue_command(self, text):
         """Issues command.
@@ -686,7 +688,6 @@ class PersistentConsoleWidget(QPlainTextEdit):
             self.add_stdout("\t\t".join(completions))
             le_cursor = self._line_edit.textCursor()
             self._line_edit.set_raw_text(text)
-            self._line_edit.setTextCursor(le_cursor)
         else:
             # Complete in current line
             last_prefix_word = prefix.split(" ")[-1]
@@ -696,7 +697,8 @@ class PersistentConsoleWidget(QPlainTextEdit):
             self._line_edit.set_raw_text(new_text)
             le_cursor = self._line_edit.textCursor()
             le_cursor.setPosition(self._line_edit.min_pos + index + len(text_to_insert))
-            self._line_edit.setTextCursor(le_cursor)
+
+        self._line_edit.setTextCursor(le_cursor)
 
     @Slot(bool)
     def _restart_persistent(self, _=False):
@@ -728,10 +730,10 @@ class PersistentConsoleWidget(QPlainTextEdit):
 
     def _do_interrupt_persistent(self):
         """Interrupts the underlying persistent process."""
-        engine_mngr = self.create_engine_manager()
-        if not engine_mngr:
+        if engine_mngr := self.create_engine_manager():
+            engine_mngr.interrupt_persistent(self._key)
+        else:
             return
-        engine_mngr.interrupt_persistent(self._key)
 
     @Slot(bool)
     def _kill_persistent(self, _=False):
@@ -741,10 +743,10 @@ class PersistentConsoleWidget(QPlainTextEdit):
 
     def _do_kill_persistent(self):
         """Kills underlying persistent process."""
-        engine_mngr = self.create_engine_manager()
-        if not engine_mngr:
+        if engine_mngr := self.create_engine_manager():
+            engine_mngr.kill_persistent(self._key)
+        else:
             return
-        engine_mngr.kill_persistent(self._key)
 
     def _extend_menu(self, menu):
         """Appends two more actions: Restart, and Interrupt.
@@ -794,6 +796,7 @@ class AnsiEscapeCodeHandler:
         self._previous_format_closed = False
 
     def parse_text(self, text):
+
         class AnsiEscapeCode:
             ResetFormat = 0
             BoldText = 1
@@ -821,9 +824,7 @@ class AnsiEscapeCodeHandler:
         char_format = self._make_default_format() if self._previous_format_closed else self._previous_format
         stripped_text = self._pending_text + text
         self._pending_text = ""
-        while stripped_text:
-            if self._pending_text:
-                break
+        while stripped_text and not self._pending_text:
             try:
                 escape_pos = stripped_text.index(escape[0])
             except ValueError:
@@ -865,7 +866,7 @@ class AnsiEscapeCodeHandler:
                         if not str_number or stripped_text[0] != semicolon:
                             break
                         str_number = ""
-                    self._pending_text += stripped_text[0:1]
+                    self._pending_text += stripped_text[:1]
                     stripped_text = stripped_text[1:]
                 if not stripped_text:
                     break
@@ -977,8 +978,8 @@ class AnsiEscapeCodeHandler:
 def _ansi_color(code, bright=False):
     if code >= 8:
         return QColor()
-    on = 170 if not bright else 255
-    off = 0 if not bright else 85
+    on = 255 if bright else 170
+    off = 85 if bright else 0
     red = on if code & 1 else off
     green = on if code & 2 else off
     blue = on if code & 4 else off

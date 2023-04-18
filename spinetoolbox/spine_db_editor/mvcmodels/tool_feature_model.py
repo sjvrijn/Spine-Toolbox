@@ -51,7 +51,7 @@ class ToolFeatureModel(TreeModelBase):
             entity_class_name = ""
         if parameter_definition_name is None:
             parameter_definition_name = ""
-        return entity_class_name + "/" + parameter_definition_name
+        return f"{entity_class_name}/{parameter_definition_name}"
 
     def _begin_set_features(self, db_map):
         parameter_definitions = self.db_mngr.get_items(db_map, "parameter_definition", only_visible=False)
@@ -132,9 +132,7 @@ class ToolFeatureModel(TreeModelBase):
             return False
         # Check that target is in the same db as source
         tool_item = self.item_from_index(parent)
-        if db_row != self.db_row(tool_item):
-            return False
-        return True
+        return db_row == self.db_row(tool_item)
 
     def dropMimeData(self, data, drop_action, row, column, parent):
         tool_feat_root_item = self.item_from_index(parent)

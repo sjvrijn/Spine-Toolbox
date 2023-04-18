@@ -122,12 +122,11 @@ class AddReadyRelationshipsDialog(ManageItemsDialogBase):
 
     def accept(self):
         super().accept()
-        data = []
-        for row in range(self.table_view.rowCount()):
-            if self.table_view.item(row, 0).checkState() != Qt.CheckState.Checked:
-                continue
-            relationship = self.relationships[row]
-            data.append([self.relationship_class["name"], relationship])
+        data = [
+            [self.relationship_class["name"], self.relationships[row]]
+            for row in range(self.table_view.rowCount())
+            if self.table_view.item(row, 0).checkState() == Qt.CheckState.Checked
+        ]
         db_map_data = {db_map: {"relationships": data} for db_map in self.db_maps}
         self.db_mngr.import_data(db_map_data, command_text="Add relationships")
 
@@ -158,7 +157,7 @@ class AddItemsDialog(ManageItemsDialog):
     @Slot(bool)
     def remove_selected_rows(self, checked=True):
         indexes = self.table_view.selectedIndexes()
-        rows = list(set(ind.row() for ind in indexes))
+        rows = list({ind.row() for ind in indexes})
         for row in sorted(rows, reverse=True):
             self.model.removeRows(row, 1)
 
@@ -211,7 +210,7 @@ class AddObjectClassesDialog(ShowIconColorEditorMixin, AddItemsDialog):
     @Slot()
     def accept(self):
         """Collect info from dialog and try to add items."""
-        db_map_data = dict()
+        db_map_data = {}
         for i in range(self.model.rowCount() - 1):  # last row will always be empty
             row_data = self.model.row_data(i)
             name, description, display_icon, db_names = row_data
@@ -269,14 +268,14 @@ class AddObjectsDialog(GetObjectClassesMixin, AddItemsDialog):
     @Slot()
     def accept(self):
         """Collect info from dialog and try to add items."""
-        db_map_data = dict()
+        db_map_data = {}
         for i in range(self.model.rowCount() - 1):  # last row will always be empty
             row_data = self.model.row_data(i)
             class_name, name, description, db_names = row_data
             if db_names is None:
                 db_names = ""
             if not name:
-                self.parent().msg_error.emit("Object missing at row {}".format(i + 1))
+                self.parent().msg_error.emit(f"Object missing at row {i + 1}")
                 return
             pre_item = {'name': name, 'description': description}
             for db_name in db_names.split(","):
@@ -287,7 +286,7 @@ class AddObjectsDialog(GetObjectClassesMixin, AddItemsDialog):
                 object_classes = self.db_map_obj_cls_lookup[db_map]
                 if class_name not in object_classes:
                     self.parent().msg_error.emit(
-                        "Invalid object_class '{}' for db '{}' at row {}".format(class_name, db_name, i + 1)
+                        f"Invalid object_class '{class_name}' for db '{db_name}' at row {i + 1}"
                     )
                     return
                 class_id = object_classes[class_name]["id"]
@@ -398,7 +397,7 @@ class AddRelationshipClassesDialog(ShowIconColorEditorMixin, GetObjectClassesMix
                 col_data = lambda j: self.model.index(row, j).data()  # pylint: disable=cell-var-from-loop
                 obj_cls_names = [col_data(j) for j in range(self.number_of_dimensions) if col_data(j)]
                 if len(obj_cls_names) == 1:
-                    relationship_class_name = obj_cls_names[0] + "__"
+                    relationship_class_name = f"{obj_cls_names[0]}__"
                 else:
                     relationship_class_name = "__".join(obj_cls_names)
                 self.model.setData(self.model.index(row, self.number_of_dimensions), relationship_class_name)
@@ -406,7 +405,7 @@ class AddRelationshipClassesDialog(ShowIconColorEditorMixin, GetObjectClassesMix
     @Slot()
     def accept(self):
         """Collect info from dialog and try to add items."""
-        db_map_data = dict()
+        db_map_data = {}
         name_column = self.model.horizontal_header_labels().index("relationship_class name")
         description_column = self.model.horizontal_header_labels().index("description")
         display_icon_column = self.model.horizontal_header_labels().index("display icon")
@@ -415,7 +414,7 @@ class AddRelationshipClassesDialog(ShowIconColorEditorMixin, GetObjectClassesMix
             row_data = self.model.row_data(i)
             relationship_class_name = row_data[name_column]
             if not relationship_class_name:
-                self.parent().msg_error.emit("Relationship class missing at row {}".format(i + 1))
+                self.parent().msg_error.emit(f"Relationship class missing at row {i + 1}")
                 return
             description = row_data[description_column]
             display_icon = row_data[display_icon_column]
@@ -431,12 +430,12 @@ class AddRelationshipClassesDialog(ShowIconColorEditorMixin, GetObjectClassesMix
                     return
                 db_map = self.keyed_db_maps[db_name]
                 object_classes = self.db_map_obj_cls_lookup[db_map]
-                object_class_id_list = list()
+                object_class_id_list = []
                 for column in range(name_column):  # Leave 'name' column outside
                     object_class_name = row_data[column]
                     if object_class_name not in object_classes:
                         self.parent().msg_error.emit(
-                            "Invalid object_class '{}' for db '{}' at row {}".format(object_class_name, db_name, i + 1)
+                            f"Invalid object_class '{object_class_name}' for db '{db_name}' at row {i + 1}"
                         )
                         return
                     object_class_id = object_classes[object_class_name]["id"]
@@ -551,7 +550,7 @@ class AddRelationshipsDialog(AddOrManageRelationshipsDialog):
         ]
         db_names = ",".join([db_name for db_name, db_map in self.keyed_db_maps.items() if db_map in default_db_maps])
         defaults = {'databases': db_names}
-        defaults.update(self.object_names_by_class_name)
+        defaults |= self.object_names_by_class_name
         self.model.set_default_row(**defaults)
         self.model.clear()
 
@@ -569,9 +568,9 @@ class AddRelationshipsDialog(AddOrManageRelationshipsDialog):
             if header.index('relationship name') not in range(left, right + 1):
                 col_data = lambda j: self.model.index(row, j).data()  # pylint: disable=cell-var-from-loop
                 obj_names = [col_data(j) for j in range(number_of_dimensions) if col_data(j)]
-                relationship_name = self.class_name + "_"
+                relationship_name = f"{self.class_name}_"
                 if len(obj_names) == 1:
-                    relationship_name += obj_names[0] + "__"
+                    relationship_name += f"{obj_names[0]}__"
                 else:
                     relationship_name += "__".join(obj_names)
                 self.model.setData(self.model.index(row, number_of_dimensions), relationship_name)
@@ -579,7 +578,7 @@ class AddRelationshipsDialog(AddOrManageRelationshipsDialog):
     @Slot()
     def accept(self):
         """Collect info from dialog and try to add items."""
-        db_map_data = dict()
+        db_map_data = {}
         name_column = self.model.horizontal_header_labels().index("relationship name")
         db_column = self.model.horizontal_header_labels().index("databases")
         for i in range(self.model.rowCount() - 1):  # last row will always be empty
@@ -587,7 +586,7 @@ class AddRelationshipsDialog(AddOrManageRelationshipsDialog):
             object_name_list = [row_data[column] for column in range(name_column)]
             relationship_name = row_data[name_column]
             if not relationship_name:
-                self.parent().msg_error.emit("Relationship missing at row {}".format(i + 1))
+                self.parent().msg_error.emit(f"Relationship missing at row {i + 1}")
                 return
             pre_item = {'name': relationship_name}
             db_names = row_data[db_column]
@@ -601,24 +600,23 @@ class AddRelationshipsDialog(AddOrManageRelationshipsDialog):
                 relationship_classes = self.db_map_rel_cls_lookup[db_map]
                 if (self.class_name, self.object_class_name_list) not in relationship_classes:
                     self.parent().msg_error.emit(
-                        "Invalid relationship_class '{}' for db '{}' at row {}".format(self.class_name, db_name, i + 1)
+                        f"Invalid relationship_class '{self.class_name}' for db '{db_name}' at row {i + 1}"
                     )
                     return
                 rel_cls = relationship_classes[self.class_name, self.object_class_name_list]
                 class_id = rel_cls["id"]
                 object_class_id_list = rel_cls["object_class_id_list"]
                 objects = self.db_map_obj_lookup[db_map]
-                object_id_list = list()
+                object_id_list = []
                 for object_class_id, object_name in zip(object_class_id_list, object_name_list):
                     if (object_class_id, object_name) not in objects:
                         self.parent().msg_error.emit(
-                            "Invalid object '{}' for db '{}' at row {}".format(object_name, db_name, i + 1)
+                            f"Invalid object '{object_name}' for db '{db_name}' at row {i + 1}"
                         )
                         return
                     object_id = objects[object_class_id, object_name]["id"]
                     object_id_list.append(object_id)
-                item = pre_item.copy()
-                item.update({'object_id_list': object_id_list, 'class_id': class_id})
+                item = pre_item | {'object_id_list': object_id_list, 'class_id': class_id}
                 db_map_data.setdefault(db_map, []).append(item)
         if not db_map_data:
             self.parent().msg_error.emit("Nothing to add")
@@ -645,7 +643,7 @@ class ManageRelationshipsDialog(AddOrManageRelationshipsDialog):
         self.remove_rows_button.setToolTip("<p>Remove selected relationships.</p>")
         self.remove_rows_button.setIconSize(QSize(24, 24))
         self.db_map = db_maps[0]
-        self.relationship_ids = dict()
+        self.relationship_ids = {}
         layout = self.header_widget.layout()
         self.db_combo_box = QComboBox(self)
         layout.addSpacing(32)
@@ -719,7 +717,7 @@ class ManageRelationshipsDialog(AddOrManageRelationshipsDialog):
         to_add = candidate - existing
         count = len(to_add)
         self.new_items_model.insertRows(0, count)
-        self.new_items_model._main_data[0:count] = to_add
+        self.new_items_model._main_data[:count] = to_add
         self.model.refresh()
 
     @Slot(int)

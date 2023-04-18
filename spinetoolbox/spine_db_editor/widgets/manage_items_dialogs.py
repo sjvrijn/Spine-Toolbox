@@ -177,9 +177,11 @@ class GetObjectsMixin:
             object_class_id = object_class_id_list[column]
             objects = self.db_map_obj_lookup[db_map]
             object_name_lists.append([name for (class_id, name) in objects if class_id == object_class_id])
-        if not object_name_lists:
-            return []
-        return list(reduce(lambda x, y: set(x) & set(y), object_name_lists))
+        return (
+            list(reduce(lambda x, y: set(x) & set(y), object_name_lists))
+            if object_name_lists
+            else []
+        )
 
 
 class GetRelationshipClassesMixin:

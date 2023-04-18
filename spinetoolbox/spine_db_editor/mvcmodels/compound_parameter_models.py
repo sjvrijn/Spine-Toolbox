@@ -227,16 +227,19 @@ class CompoundParameterModel(CompoundWithEmptyTableModel):
         """
         if not model.can_be_filtered:
             return True
-        if not self._auto_filter_accepts_model(model):
-            return False
-        if not self._class_filter_accepts_model(model):
-            return False
-        return True
+        return (
+            bool(self._class_filter_accepts_model(model))
+            if self._auto_filter_accepts_model(model)
+            else False
+        )
 
     def _class_filter_accepts_model(self, model):
-        if not self._filter_class_ids:
-            return True
-        return model.entity_class_id in self._filter_class_ids.get(model.db_map, set())
+        return (
+            model.entity_class_id
+            in self._filter_class_ids.get(model.db_map, set())
+            if self._filter_class_ids
+            else True
+        )
 
     def _auto_filter_accepts_model(self, model):
         if None in self._auto_filter.values():
@@ -350,12 +353,10 @@ class CompoundParameterModel(CompoundWithEmptyTableModel):
         Returns:
             dict
         """
-        d = dict()
+        d = {}
         for item in items:
-            entity_class_id = item.get(self.entity_class_id_key)
-            if not entity_class_id:
-                continue
-            d.setdefault(entity_class_id, list()).append(item)
+            if entity_class_id := item.get(self.entity_class_id_key):
+                d.setdefault(entity_class_id, []).append(item)
         return d
 
     def handle_items_added(self, db_map_data):
@@ -371,8 +372,8 @@ class CompoundParameterModel(CompoundWithEmptyTableModel):
             existing_ids = set().union(*(m.item_ids() for m in db_map_single_models))
             items_per_class = self._items_per_class(items)
             for entity_class_id, class_items in items_per_class.items():
-                ids_committed = list()
-                ids_uncommitted = list()
+                ids_committed = []
+                ids_uncommitted = []
                 for item in class_items:
                     is_committed = db_map.commit_id() is None or item["commit_id"] != db_map.commit_id()
                     item_id = item["id"]
@@ -496,7 +497,7 @@ class CompoundParameterModel(CompoundWithEmptyTableModel):
             "parameter_value": {"object_class": "object_name", "relationship_class": "object_name_list"},
         }[self.item_type][self.entity_class_type]
         name = item[name_key]
-        names = [name] if not isinstance(name, tuple) else list(name)
+        names = list(name) if isinstance(name, tuple) else [name]
         alternative_name = {"parameter_definition": lambda x: None, "parameter_value": lambda x: x["alternative_name"]}[
             self.item_type
         ](item)
@@ -573,13 +574,13 @@ class CompoundParameterValueMixin:
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._filter_entity_ids = dict()
-        self._filter_alternative_ids = dict()
+        self._filter_entity_ids = {}
+        self._filter_alternative_ids = {}
 
     def init_model(self):
         super().init_model()
-        self._filter_entity_ids = dict()
-        self._filter_alternative_ids = dict()
+        self._filter_entity_ids = {}
+        self._filter_alternative_ids = {}
 
     @property
     def item_type(self):

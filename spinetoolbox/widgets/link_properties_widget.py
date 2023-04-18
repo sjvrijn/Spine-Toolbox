@@ -124,7 +124,7 @@ class LinkPropertiesWidget(PropertiesWidgetBase):
         """"""
         for filter_type, action in self._filter_validation_actions.items():
             if self._connection.require_filter_online(filter_type) != action.isChecked():
-                options = {"require_" + filter_type: checked}
+                options = {f"require_{filter_type}": checked}
                 self._toolbox.undo_stack.push(
                     SetConnectionOptionsCommand(self._toolbox.project(), self._connection, options)
                 )

@@ -113,7 +113,11 @@ class _AffectedItemsFromOneTable(QTreeWidget):
         if first is None:
             return
         self._margin = 6
-        keys = [key for key in first if not any(word in key for word in {"id", "parsed", "entity"})]
+        keys = [
+            key
+            for key in first
+            if all(word not in key for word in {"id", "parsed", "entity"})
+        ]
         self.setHeaderLabels(keys)
         tree_items = [
             QTreeWidgetItem(

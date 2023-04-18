@@ -89,9 +89,8 @@ class EntityClassItem(MultiDBTreeItem):
             bold_font = QFont()
             bold_font.setBold(True)
             return bold_font
-        if role == Qt.ForegroundRole and column == 0:
-            if not self.has_children():
-                return QBrush(Qt.gray)
+        if role == Qt.ForegroundRole and column == 0 and not self.has_children():
+            return QBrush(Qt.gray)
         return super().data(column, role)
 
     def accepts_item(self, item, db_map):
@@ -230,7 +229,7 @@ class MembersItem(EntityClassItem):
 
     def default_parameter_data(self):
         """Return data to put as default in a parameter table when this item is selected."""
-        return dict()
+        return {}
 
     def data(self, column, role=Qt.ItemDataRole.DisplayRole):
         """Returns data for given column and role."""

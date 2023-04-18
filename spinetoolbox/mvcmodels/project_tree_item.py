@@ -33,7 +33,7 @@ class BaseProjectTreeItem(MetaObject):
         """
         super().__init__(name, description)
         self._parent = None  # Parent BaseProjectTreeItem. Set when add_child is called
-        self._children = list()  # Child BaseProjectTreeItems. Appended when new items are inserted into model.
+        self._children = []
 
     def flags(self):  # pylint: disable=no-self-use
         """Returns the item flags."""
@@ -69,11 +69,7 @@ class BaseProjectTreeItem(MetaObject):
 
     def row(self):
         """Returns the row on which this item is located."""
-        if self._parent is not None:
-            r = self._parent.children().index(self)
-            # logging.debug("{0} is on row:{1}".format(self.name, r))
-            return r
-        return 0
+        return self._parent.children().index(self) if self._parent is not None else 0
 
     def add_child(self, child_item):
         """Base method that shall be overridden in subclasses."""

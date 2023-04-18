@@ -215,9 +215,11 @@ class _FilterWidget(QTreeWidget):
 
     def filter_config(self):
         selected = self.selectedItems()
-        if not selected:
-            return {}
-        return filter_config(self._filter_type, selected[0].text(0))
+        return (
+            filter_config(self._filter_type, selected[0].text(0))
+            if selected
+            else {}
+        )
 
 
 class _FilterArrayWidget(QWidget):
@@ -241,10 +243,8 @@ class _FilterArrayWidget(QWidget):
     def filtered_url_codename(self):
         url = clear_filter_configs(self._db_map.db_url)
         for filter_widget in self._filter_widgets:
-            filter_config_ = filter_widget.filter_config()
-            if not filter_config_:
-                continue
-            url = append_filter_config(url, filter_config_)
+            if filter_config_ := filter_widget.filter_config():
+                url = append_filter_config(url, filter_config_)
         return url, self._db_map.codename
 
     def sizeHint(self):
@@ -314,8 +314,7 @@ class _UrlFilterDialog(QDialog):
         self.adjustSize()
 
     def sizeHint(self):
-        size = super().sizeHint()
-        return size
+        return super().sizeHint()
 
     def _update_filter_enabled(self):
         self._filter_button.setEnabled(self._orig_filtered_url_codenames != self._db_list.filtered_url_codenames())

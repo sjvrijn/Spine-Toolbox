@@ -393,7 +393,7 @@ class ProjectItemSpecArray(QToolBar):
         extent = style.pixelMetric(QStyle.PixelMetric.PM_ToolBarExtensionExtent)
         down, right = "\uf0d7", "\uf0da"
         if orientation == Qt.Orientation.Horizontal:
-            icon = down if not self._visible else right
+            icon = right if self._visible else down
             width = extent
             min_width = self._button_base_item.sizeHint().width() + extent + self._margins.left() + spacing
             min_visible_width = min_width + self._button_new.sizeHint().width() - spacing
@@ -408,7 +408,7 @@ class ProjectItemSpecArray(QToolBar):
                 w.setMaximumWidth(w.sizeHint().width())
                 w.setMaximumHeight(height)
         else:
-            icon = right if not self._visible else down
+            icon = down if self._visible else right
             height = extent
             min_width = self._button_base_item.sizeHint().width()
             min_height = self._button_base_item.sizeHint().height() + extent + self._margins.top() + spacing

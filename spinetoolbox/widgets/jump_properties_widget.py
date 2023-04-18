@@ -63,7 +63,7 @@ class JumpPropertiesWidget(PropertiesWidgetBase):
         self._ui.condition_script_edit.setEnabled(condition["type"] == "python-script")
         self._ui.comboBox_tool_spec.setEnabled(condition["type"] == "tool-specification")
         self._ui.toolButton_edit_tool_spec.setEnabled(condition["type"] == "tool-specification")
-        if not condition["type"] == "python-script":
+        if condition["type"] != "python-script":
             self._ui.condition_script_edit.clear()
         if condition["type"] == "python-script":
             self._ui.radioButton_py_script.setChecked(True)

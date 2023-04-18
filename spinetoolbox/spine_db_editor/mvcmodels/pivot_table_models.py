@@ -140,9 +140,7 @@ class TopLeftParameterIndexHeaderItem(TopLeftHeaderItem):
 
     def header_data(self, header_id, role=Qt.ItemDataRole.DisplayRole):  # pylint: disable=no-self-use
         _, index = header_id
-        if role == PARSED_ROLE:
-            return index
-        return str(index)
+        return index if role == PARSED_ROLE else str(index)
 
     def update_data(self, db_map_data):  # pylint: disable=no-self-use
         return False
@@ -430,8 +428,9 @@ class PivotTableModelBase(QAbstractTableModel):
         header_ids = self._header_ids(0, pivot_column)
         _, parameter_id = header_ids[-3]
         db_map = header_ids[-1]
-        parameter_name = self.db_mngr.get_item(db_map, "parameter_definition", parameter_id).get("parameter_name", "")
-        return parameter_name
+        return self.db_mngr.get_item(
+            db_map, "parameter_definition", parameter_id
+        ).get("parameter_name", "")
 
     def headerRowCount(self):
         """Returns number of rows occupied by header."""
@@ -649,9 +648,7 @@ class PivotTableModelBase(QAbstractTableModel):
                 return self.model.pivot_columns[index.row()]
             if self.index_in_headers(index):
                 return self._header_data(index, role)
-            if self.index_in_data(index):
-                return self._data(index, role)
-            return None
+            return self._data(index, role) if self.index_in_data(index) else None
         if role == Qt.ItemDataRole.FontRole and self.index_in_top_left(index):
             font = QFont()
             font.setBold(True)
@@ -701,9 +698,11 @@ class PivotTableModelBase(QAbstractTableModel):
         row_map = list(row_map)
         column_map = list(column_map)
         data = self.model.get_pivoted_data(row_map, column_map)
-        if not data:
-            return False
-        return self._do_batch_set_inner_data(row_map, column_map, data, values)
+        return (
+            self._do_batch_set_inner_data(row_map, column_map, data, values)
+            if data
+            else False
+        )
 
     def _do_batch_set_inner_data(self, row_map, column_map, data, values):
         raise NotImplementedError()
@@ -955,7 +954,7 @@ class ParameterValuePivotTableModel(PivotTableModelBase):
         )
 
     def _relationship_parameter_value_to_add(self, db_map, header_ids, value_and_type, rel_id_lookup):
-        object_id_list = tuple(id_ for id_ in header_ids[:-2])
+        object_id_list = tuple(header_ids[:-2])
         relationship_id = rel_id_lookup[db_map, object_id_list]
         value, value_type = split_value_and_type(value_and_type)
         return dict(
@@ -1174,9 +1173,9 @@ class RelationshipPivotTableModel(PivotTableModelBase):
         self.update_model(data)
 
     def _load_empty_relationship_data(self, db_map_data):
-        db_map_class_objects = dict()
+        db_map_class_objects = {}
         for db_map, items in db_map_data.items():
-            class_objects = db_map_class_objects[db_map] = dict()
+            class_objects = db_map_class_objects[db_map] = {}
             for item in items:
                 class_objects.setdefault(item["class_id"], []).append(item)
         return self._parent.load_empty_relationship_data(db_map_class_objects=db_map_class_objects)
@@ -1226,9 +1225,7 @@ class RelationshipPivotTableModel(PivotTableModelBase):
     def _data(self, index, role):
         row, column = self.map_to_pivot(index)
         data = self.model.get_pivoted_data([row], [column])
-        if not data:
-            return None
-        return bool(data[0][0])
+        return bool(data[0][0]) if data else None
 
     def _do_batch_set_inner_data(self, row_map, column_map, data, values):
         return self._batch_set_relationship_data(row_map, column_map, data, values)
@@ -1239,7 +1236,7 @@ class RelationshipPivotTableModel(PivotTableModelBase):
                 db_map, "relationship_class", self._parent.current_class_id.get(db_map)
             )["name"]
             object_names = [self.db_mngr.get_item(db_map, "object", id_)["name"] for id_ in header_ids]
-            name = rel_cls_name + "_" + "__".join(object_names)
+            name = f"{rel_cls_name}_" + "__".join(object_names)
             return dict(object_id_list=list(header_ids), class_id=self._parent.current_class_id.get(db_map), name=name)
 
         to_add = {}
@@ -1356,12 +1353,10 @@ class ScenarioAlternativePivotTableModel(PivotTableModelBase):
 
     def _data(self, index, role):
         row, column = self.map_to_pivot(index)
-        data = self.model.get_pivoted_data([row], [column])
-        if not data:
+        if data := self.model.get_pivoted_data([row], [column]):
+            return False if data[0][0] is None else data[0][0]
+        else:
             return None
-        if data[0][0] is None:
-            return False
-        return data[0][0]
 
     def _do_batch_set_inner_data(self, row_map, column_map, data, values):
         return self._batch_set_scenario_alternative_data(row_map, column_map, data, values)
@@ -1412,8 +1407,7 @@ class PivotTableSortFilterProxy(QSortFilterProxyModel):
         self.index_filters = {}
 
     def setSourceModel(self, model):
-        old_model = self.sourceModel()
-        if old_model:
+        if old_model := self.sourceModel():
             old_model.model_data_changed.disconnect(self.model_data_changed)
         super().setSourceModel(model)
         model.model_data_changed.connect(self.model_data_changed)

@@ -341,8 +341,7 @@ class ParameterValueOrDefaultValueDelegate(ParameterDelegate):
         db_map = self._get_db_map(index)
         if not db_map:
             return None
-        value_list_id = self._get_value_list_id(index, db_map)
-        if value_list_id:
+        if value_list_id := self._get_value_list_id(index, db_map):
             display_value_list = self.db_mngr.get_parameter_value_list(
                 db_map, value_list_id, Qt.ItemDataRole.DisplayRole, only_visible=False
             )

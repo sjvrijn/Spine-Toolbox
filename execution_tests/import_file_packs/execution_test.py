@@ -18,7 +18,7 @@ class ModifyConnectionFilterByScript(unittest.TestCase):
         self._database_path.parent.mkdir(parents=True, exist_ok=True)
         if self._database_path.exists():
             self._database_path.unlink()
-        self._url = "sqlite:///" + str(self._database_path)
+        self._url = f"sqlite:///{str(self._database_path)}"
         db_map = DatabaseMapping(self._url, create=True)
         db_map.connection.close()
 

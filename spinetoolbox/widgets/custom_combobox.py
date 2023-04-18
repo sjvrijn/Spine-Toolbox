@@ -49,7 +49,7 @@ class OpenProjectDialogComboBox(QComboBox):
             e (QKeyEvent): Received key press event.
         """
         parent = self.parent()
-        if e.key() == Qt.Key_Enter or e.key() == Qt.Key_Return:
+        if e.key() in [Qt.Key_Enter, Qt.Key_Return]:
             state = self.validator().state
             fm_current_index = parent.ui.treeView_file_system.currentIndex()
             if state == QValidator.State.Intermediate:
@@ -59,16 +59,14 @@ class OpenProjectDialogComboBox(QComboBox):
                 parent.remove_directory_from_recents(os.path.abspath(parent.selection()), parent._toolbox.qsettings())
                 # Remove path from combobox as well
                 cb_index = self.findText(os.path.abspath(parent.selection()))
-                if cb_index == -1:
-                    pass
-                else:
+                if cb_index != -1:
                     self.removeItem(cb_index)
                 notification = Notification(parent, "Path does not exist")
                 notification.show()
             elif state == QValidator.State.Acceptable:
                 p = self.currentText()
                 fm_index = parent.file_model.index(p)
-                if not fm_current_index == fm_index:
+                if fm_current_index != fm_index:
                     parent.ui.treeView_file_system.collapseAll()
                     parent.ui.treeView_file_system.setCurrentIndex(fm_index)
                     parent.ui.treeView_file_system.expand(fm_index)
@@ -77,9 +75,6 @@ class OpenProjectDialogComboBox(QComboBox):
                     project_json_fp = os.path.abspath(os.path.join(parent.selection(), ".spinetoolbox", "project.json"))
                     if os.path.isfile(project_json_fp):
                         parent.done(QDialog.DialogCode.Accepted)
-            else:
-                # INVALID (or None). Happens if Enter key is pressed and the combobox text has not been edited yet.
-                pass
             e.accept()
         else:
             super().keyPressEvent(e)

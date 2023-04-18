@@ -57,19 +57,19 @@ class GraphViewMixin:
         self._owes_graph = False
         self.scene = CustomGraphicsScene(self)
         self.ui.graphicsView.setScene(self.scene)
-        self.object_items = list()
-        self.relationship_items = list()
-        self.arc_items = list()
+        self.object_items = []
+        self.relationship_items = []
+        self.arc_items = []
         self.selected_tree_inds = {}
-        self.db_map_object_id_sets = list()
-        self.db_map_relationship_id_sets = list()
-        self.src_inds = list()
-        self.dst_inds = list()
+        self.db_map_object_id_sets = []
+        self.db_map_relationship_id_sets = []
+        self.src_inds = []
+        self.dst_inds = []
         self._adding_relationships = False
         self._pos_for_added_objects = None
         self.added_db_map_relationship_ids = set()
         self._thread_pool = QThreadPool()
-        self.layout_gens = dict()
+        self.layout_gens = {}
         self._layout_gen_id = None
         self._extend_graph_timer = QTimer(self)
         self._extend_graph_timer.setSingleShot(True)
@@ -246,8 +246,7 @@ class GraphViewMixin:
                     key = get_key(db_map_id)
                 except KeyError:
                     continue
-                db_map_ids = added_db_map_ids_by_key.pop(key, None)
-                if db_map_ids:
+                if db_map_ids := added_db_map_ids_by_key.pop(key, None):
                     item.add_db_map_ids(db_map_ids)
                     restored_items.add(item)
         for item in restored_items:
@@ -361,10 +360,11 @@ class GraphViewMixin:
                 if self.db_mngr.can_fetch_more(db_map, fetch_parent):
                     self.db_mngr.fetch_more(db_map, fetch_parent)
         if "root" in self.selected_tree_inds:
-            return (
-                set((db_map, x["id"]) for db_map in self.db_maps for x in self.db_mngr.get_items(db_map, "object")),
-                set(),
-            )
+            return {
+                (db_map, x["id"])
+                for db_map in self.db_maps
+                for x in self.db_mngr.get_items(db_map, "object")
+            }, set()
         selected_object_ids = set()
         selected_relationship_ids = set()
         for index in self.selected_tree_inds.get("object", {}):
@@ -375,20 +375,20 @@ class GraphViewMixin:
             selected_relationship_ids |= set(item.db_map_ids.items())
         for index in self.selected_tree_inds.get("object_class", {}):
             item = index.model().item_from_index(index)
-            selected_object_ids |= set(
+            selected_object_ids |= {
                 (db_map, x["id"])
                 for db_map, id_ in item.db_map_ids.items()
                 for x in self.db_mngr.get_items(db_map, "object")
                 if x["class_id"] == id_
-            )
+            }
         for index in self.selected_tree_inds.get("relationship_class", {}):
             item = index.model().item_from_index(index)
-            selected_relationship_ids |= set(
+            selected_relationship_ids |= {
                 (db_map, x["id"])
                 for db_map, id_ in item.db_map_ids.items()
                 for x in self.db_mngr.get_items(db_map, "relationship")
                 if x["class_id"] == id_
-            )
+            }
         return selected_object_ids, selected_relationship_ids
 
     def _get_db_map_relationships_for_graph(self, db_map_object_ids, db_map_relationship_ids):
@@ -410,11 +410,11 @@ class GraphViewMixin:
         db_map_object_ids -= pruned_db_map_entity_ids
         db_map_relationship_ids -= pruned_db_map_entity_ids
         db_map_relationships = self._get_db_map_relationships_for_graph(db_map_object_ids, db_map_relationship_ids)
-        db_map_object_id_lists = dict()
+        db_map_object_id_lists = {}
         max_rel_dim = (
-            self.ui.graphicsView.max_relationship_dimension
-            if not self.ui.graphicsView.disable_max_relationship_dimension
-            else sys.maxsize
+            sys.maxsize
+            if self.ui.graphicsView.disable_max_relationship_dimension
+            else self.ui.graphicsView.max_relationship_dimension
         )
         for db_map, relationship in db_map_relationships:
             if (db_map, relationship["id"]) in pruned_db_map_entity_ids:
@@ -464,8 +464,8 @@ class GraphViewMixin:
         return key
 
     def _update_src_dst_inds(self, db_map_object_id_lists):
-        self.src_inds = list()
-        self.dst_inds = list()
+        self.src_inds = []
+        self.dst_inds = []
         obj_ind_lookup = {
             db_map_obj_id: k
             for k, db_map_obj_ids in enumerate(self.db_map_object_id_sets)
@@ -476,7 +476,7 @@ class GraphViewMixin:
             for k, db_map_rel_ids in enumerate(self.db_map_relationship_id_sets)
             for db_map_rel_id in db_map_rel_ids
         }
-        edges = dict()
+        edges = {}
         for db_map_rel_id, db_map_object_id_list in db_map_object_id_lists.items():
             object_inds = [obj_ind_lookup[db_map_obj_id] for db_map_obj_id in db_map_object_id_list]
             relationship_ind = rel_ind_lookup[db_map_rel_id]

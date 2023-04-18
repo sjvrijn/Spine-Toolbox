@@ -115,10 +115,10 @@ class SpineToolboxProject(MetaObject):
         _, name = os.path.split(p_dir)
         super().__init__(name, "")
         self._toolbox = toolbox
-        self._project_items = dict()
+        self._project_items = {}
         self._specifications = dict(enumerate(plugin_specs))
-        self._connections = list()
-        self._jumps = list()
+        self._connections = []
+        self._jumps = []
         self._logger = logger
         self._settings = settings
         self._engine_workers = []
@@ -171,10 +171,7 @@ class SpineToolboxProject(MetaObject):
             return
         super().set_description(description)
         msg = "Project description "
-        if description:
-            msg += f"changed to <b>{description}</b>"
-        else:
-            msg += "cleared"
+        msg += f"changed to <b>{description}</b>" if description else "cleared"
         self._logger.msg.emit(msg)
 
     def save(self):
@@ -208,7 +205,7 @@ class SpineToolboxProject(MetaObject):
         Returns:
             dict: specification local data that is supposed to be stored in a project specific place
         """
-        serialized_spec_paths = dict()
+        serialized_spec_paths = {}
         specifications_local_data = {}
         for spec in self._specifications.values():
             if spec.plugin is not None:
@@ -237,7 +234,7 @@ class SpineToolboxProject(MetaObject):
         Returns:
             dict: local project item data
         """
-        local_data_dict = dict()
+        local_data_dict = {}
         for name, item_dict in items_dict.items():
             local_entries = self._project_items[name].item_dict_local_entries()
             if not local_entries:
@@ -403,10 +400,14 @@ class SpineToolboxProject(MetaObject):
         Returns:
             int: specification's id or None if no such specification exists
         """
-        for id_, spec in self._specifications.items():
-            if name == spec.name:
-                return id_
-        return None
+        return next(
+            (
+                id_
+                for id_, spec in self._specifications.items()
+                if name == spec.name
+            ),
+            None,
+        )
 
     def remove_specification(self, id_or_name):
         """Removes a specification from project.
@@ -508,15 +509,14 @@ class SpineToolboxProject(MetaObject):
                 data_by_item_type[specification.name] = local_data
             else:
                 local_item_data = specification_local_data.get(specification.item_type)
-                if local_item_data is not None:
-                    name = specification.name if previous_name is None else previous_name
-                    previous_data = local_item_data.pop(name, None)
-                    if previous_data is None:
-                        return
-                    if not local_item_data:
-                        del specification_local_data[specification.item_type]
-                else:
+                if local_item_data is None:
                     return
+                name = specification.name if previous_name is None else previous_name
+                previous_data = local_item_data.pop(name, None)
+                if previous_data is None:
+                    return
+                if not local_item_data:
+                    del specification_local_data[specification.item_type]
         elif not local_data:
             return
         else:
@@ -541,7 +541,9 @@ class SpineToolboxProject(MetaObject):
         except OSError:
             self._logger.msg_error.emit(f"Creating directory {specs_type_dir} failed")
             specs_type_dir = specs_dir
-        candidate_path = os.path.join(specs_type_dir, shorten(specification.name) + ".json")
+        candidate_path = os.path.join(
+            specs_type_dir, f"{shorten(specification.name)}.json"
+        )
         if os.path.exists(candidate_path):
             # Confirm overwriting existing file.
             candidate_path = self._toolbox.prompt_save_location(
@@ -846,7 +848,7 @@ class SpineToolboxProject(MetaObject):
         Returns:
             list of str: list of issues, if any
         """
-        issues = list()
+        issues = []
         dag = self.dag_with_node(jump.source)
         if not dag.has_node(jump.destination):
             issues.append("Loop cannot span over separate DAGs.")
@@ -993,7 +995,10 @@ class SpineToolboxProject(MetaObject):
             if worker is None:
                 continue
             self._logger.msg.emit("<b>Starting DAG {0}</b>".format(dag_identifier))
-            item_names = (darker(name) if not execution_permits[name] else name for name in nx.topological_sort(dag))
+            item_names = (
+                name if execution_permits[name] else darker(name)
+                for name in nx.topological_sort(dag)
+            )
             self._logger.msg.emit(darker(" -> ").join(item_names))
             worker.finished.connect(lambda worker=worker: self._handle_engine_worker_finished(worker))
             self._engine_workers.append(worker)
@@ -1023,16 +1028,16 @@ class SpineToolboxProject(MetaObject):
         connection_dicts = [c.to_dict() for c in connections.values()]
         jumps = {c.name: c for c in self._jumps if execution_permits.get(c.source, False)}
         jump_dicts = [c.to_dict() for c in jumps.values()]
-        connections.update(jumps)
+        connections |= jumps
         specs_by_type = {}
         for project_item in items.values():
             spec = project_item.specification()
             if spec is not None:
-                specs_by_type.setdefault(project_item.item_type(), list()).append(spec)
+                specs_by_type.setdefault(project_item.item_type(), []).append(spec)
         for jump in jumps.values():
             if jump.condition["type"] == "tool-specification":
                 spec = self.get_specification(jump.condition["specification"])
-                specs_by_type.setdefault("Tool", list()).append(spec)
+                specs_by_type.setdefault("Tool", []).append(spec)
         specification_dicts = {
             type_: [{**spec.to_dict(), "definition_file_path": spec.definition_file_path} for spec in specs]
             for type_, specs in specs_by_type.items()
@@ -1047,8 +1052,15 @@ class SpineToolboxProject(MetaObject):
             "settings": settings,
             "project_dir": self.project_dir.replace(os.sep, "/"),
         }
-        worker = SpineEngineWorker(data, dag, dag_identifier, items, connections, self._logger, self.job_id)
-        return worker
+        return SpineEngineWorker(
+            data,
+            dag,
+            dag_identifier,
+            items,
+            connections,
+            self._logger,
+            self.job_id,
+        )
 
     def _handle_engine_worker_finished(self, worker):
         finished_outcomes = {
@@ -1089,7 +1101,7 @@ class SpineToolboxProject(MetaObject):
             return
         dags = [dag for dag in self._dag_iterator() if set(names) & dag.nodes]
         dags = self._validate_dags(dags)
-        execution_permit_list = list()
+        execution_permit_list = []
         for dag in dags:
             execution_permits = {name: name in names for name in dag.nodes}
             execution_permit_list.append(execution_permits)
@@ -1101,9 +1113,9 @@ class SpineToolboxProject(MetaObject):
             self._logger.msg_warning.emit("Project has no items to execute")
             return
         dags = self._validate_dags(self._dag_iterator())
-        execution_permit_list = list()
-        for dag in dags:
-            execution_permit_list.append({item_name: True for item_name in dag.nodes})
+        execution_permit_list = [
+            {item_name: True for item_name in dag.nodes} for dag in dags
+        ]
         self.execute_dags(dags, execution_permit_list, "Executing All Directed Acyclic Graphs")
 
     def _validate_dags(self, dags):
@@ -1346,7 +1358,7 @@ class SpineToolboxProject(MetaObject):
         return self.incoming_connections(name) + self._incoming_jumps(name)
 
     def _update_successor(self, successor, incoming_connections, resource_cache):
-        combined_resources = list()
+        combined_resources = []
         for conn in incoming_connections:
             item_name = conn.source
             predecessor = self._project_items[item_name]
@@ -1359,7 +1371,7 @@ class SpineToolboxProject(MetaObject):
         successor.upstream_resources_updated(combined_resources)
 
     def _update_predecessor(self, predecessor, outgoing_connections, resource_cache):
-        combined_resources = list()
+        combined_resources = []
         for conn in outgoing_connections:
             item_name = conn.destination
             successor = self._project_items[item_name]
@@ -1399,7 +1411,12 @@ class SpineToolboxProject(MetaObject):
             str: Job Id if server is ready for remote execution, empty string if something went wrong or "1" if
             local execution is enabled.
         """
-        if not self._settings.value("engineSettings/remoteExecutionEnabled", defaultValue="false") == "true":
+        if (
+            self._settings.value(
+                "engineSettings/remoteExecutionEnabled", defaultValue="false"
+            )
+            != "true"
+        ):
             return "1"  # Something that isn't False
         host, port, sec_model, sec_folder = self._toolbox.engine_server_settings()
         if not host:
@@ -1432,7 +1449,11 @@ class SpineToolboxProject(MetaObject):
             self._logger.msg_error.emit(f"{e}")
             engine_client.close()
             return ""
-        project_zip_file = os.path.abspath(os.path.join(self.project_dir, os.pardir, PROJECT_ZIP_FILENAME + ".zip"))
+        project_zip_file = os.path.abspath(
+            os.path.join(
+                self.project_dir, os.pardir, f"{PROJECT_ZIP_FILENAME}.zip"
+            )
+        )
         if not os.path.isfile(project_zip_file):
             self._logger.msg_error.emit(f"Project zip-file {project_zip_file} does not exist")
             engine_client.close()
@@ -1449,7 +1470,12 @@ class SpineToolboxProject(MetaObject):
 
     def finalize_remote_execution(self):
         """Sends a request to server to remove the project directory and removes the project ZIP file from client."""
-        if not self._settings.value("engineSettings/remoteExecutionEnabled", defaultValue="false") == "true":
+        if (
+            self._settings.value(
+                "engineSettings/remoteExecutionEnabled", defaultValue="false"
+            )
+            != "true"
+        ):
             return
         host, port, sec_model, sec_folder = self._toolbox.engine_server_settings()
         try:
@@ -1461,7 +1487,11 @@ class SpineToolboxProject(MetaObject):
             return
         engine_client.remove_project_from_server(self.job_id)
         engine_client.close()
-        project_zip_file = os.path.abspath(os.path.join(self.project_dir, os.pardir, PROJECT_ZIP_FILENAME + ".zip"))
+        project_zip_file = os.path.abspath(
+            os.path.join(
+                self.project_dir, os.pardir, f"{PROJECT_ZIP_FILENAME}.zip"
+            )
+        )
         if not os.path.isfile(project_zip_file):
             return
         try:
@@ -1504,7 +1534,7 @@ def _edges_causing_loops(g):
     Returns:
         list
     """
-    result = list()
+    result = []
     h = g.copy()  # Let's work on a copy of the graph
     while True:
         try:
@@ -1527,11 +1557,11 @@ def _ranks(node_successors):
     Returns:
         dict: a mapping from node name to rank
     """
-    node_predecessors = dict()
+    node_predecessors = {}
     for predecessor, successors in node_successors.items():
-        node_predecessors.setdefault(predecessor, list())
+        node_predecessors.setdefault(predecessor, [])
         for successor in successors:
-            node_predecessors.setdefault(successor, list()).append(predecessor)
+            node_predecessors.setdefault(successor, []).append(predecessor)
     ranking = []
     while node_predecessors:
         same_ranks = [node for node, predecessor in node_predecessors.items() if not predecessor]

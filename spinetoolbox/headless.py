@@ -93,12 +93,12 @@ class HeadlessLogger(QObject):
     @Slot(str, str)
     def _show_information_box(self, title, message):
         """Prints an information message with a title."""
-        self._print(title + ": " + message, sys.stdout)
+        self._print(f"{title}: {message}", sys.stdout)
 
     @Slot(str, str)
     def _show_error_box(self, title, message):
         """Prints an error message with a title."""
-        self._print(title + ": " + message, sys.stderr)
+        self._print(f"{title}: {message}", sys.stderr)
 
     def _print(self, message, out_stream):
         """Filters HTML tags from message before printing it to given file."""
@@ -188,7 +188,7 @@ class ActionsWithProject(QObject):
         self._logger = HeadlessLogger()
         self._startup_event_type = startup_event_type
         self._start.connect(self._execute)
-        self._node_messages = dict()
+        self._node_messages = {}
         self._project_dir = None
         self._app_settings = None
         self._item_dicts = None
@@ -244,7 +244,7 @@ class ActionsWithProject(QObject):
         """
         self._app_settings = QSettings("SpineProject", "Spine Toolbox", self)
         spec_factories = load_item_specification_factories("spine_items")
-        self._plugin_specifications = dict()
+        self._plugin_specifications = {}
         self._project_dir = pathlib.Path(self._args.project).resolve()
         config_dir = self._project_dir / ".spinetoolbox"
         specification_local_data = load_specification_local_data(config_dir)
@@ -324,7 +324,10 @@ class ActionsWithProject(QObject):
         dags = self._dags()
         settings = make_settings_dict_for_engine(self._app_settings)
         # Force local execution in headless mode
-        if not settings.get("engineSettings/remoteExecutionEnabled", "false") == "false":
+        if (
+            settings.get("engineSettings/remoteExecutionEnabled", "false")
+            != "false"
+        ):
             settings["engineSettings/remoteExecutionEnabled"] = "false"
         selected = {name for name_list in self._args.select for name in name_list} if self._args.select else None
         deselected = {name for name_list in self._args.deselect for name in name_list} if self._args.deselect else None
@@ -344,7 +347,7 @@ class ActionsWithProject(QObject):
                 for item_name in item_names_in_dag
             }
             skipped_items |= {name for name, selected in execution_permits.items() if not selected}
-            if all(not permitted for permitted in execution_permits.values()):
+            if not any(execution_permits.values()):
                 continue
             executed_items |= {name for name, selected in execution_permits.items() if selected}
             engine_data = {
@@ -414,7 +417,7 @@ class ActionsWithProject(QObject):
         if data["direction"] == "BACKWARD":
             # Currently there are no interesting messages when executing backwards.
             return
-        self._node_messages[data["item_name"]] = dict()
+        self._node_messages[data["item_name"]] = {}
 
     def _handle_node_execution_finished(self, data):
         """Prints messages for finished nodes.
@@ -470,7 +473,7 @@ class ActionsWithProject(QObject):
         Args:
             data (dict): execution message data
         """
-        if data["type"] == "stdout" or data["type"] == "stderr":
+        if data["type"] in ["stdout", "stderr"]:
             messages = self._node_messages.get(data["item_name"])
             if messages is None:
                 return
@@ -533,10 +536,15 @@ def _specification_dicts(project_dict, project_dir, logger):
     Returns:
         dict: a mapping from item type to a list of specification dicts
     """
-    specification_dicts = dict()
-    specification_file_paths = dict()
-    for item_type, serialized_paths in project_dict["project"].get("specifications", {}).items():
-        specification_file_paths[item_type] = [deserialize_path(path, project_dir) for path in serialized_paths]
+    specification_dicts = {}
+    specification_file_paths = {
+        item_type: [
+            deserialize_path(path, project_dir) for path in serialized_paths
+        ]
+        for item_type, serialized_paths in project_dict["project"]
+        .get("specifications", {})
+        .items()
+    }
     for item_type, paths in specification_file_paths.items():
         for path in paths:
             try:
@@ -550,7 +558,7 @@ def _specification_dicts(project_dict, project_dir, logger):
                 logger.msg_error.emit(f"Specification file <b>{path}</b> does not exist")
                 continue
             specification_dict["definition_file_path"] = path
-            specification_dicts.setdefault(item_type, list()).append(specification_dict)
+            specification_dicts.setdefault(item_type, []).append(specification_dict)
     return specification_dicts
 
 

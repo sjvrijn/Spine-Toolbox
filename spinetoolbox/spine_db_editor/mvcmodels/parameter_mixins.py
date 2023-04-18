@@ -55,7 +55,7 @@ class FillInAlternativeIdMixin(ConvertToDBMixin):
     def __init__(self, *args, **kwargs):
         """Initializes lookup dicts."""
         super().__init__(*args, **kwargs)
-        self._db_map_alt_lookup = dict()
+        self._db_map_alt_lookup = {}
 
     def build_lookup_dictionary(self, db_map_data):
         """Builds a name lookup dictionary for the given data.
@@ -65,7 +65,7 @@ class FillInAlternativeIdMixin(ConvertToDBMixin):
         """
         super().build_lookup_dictionary(db_map_data)
         # Group data by name
-        db_map_names = dict()
+        db_map_names = {}
         for db_map, items in db_map_data.items():
             for item in items:
                 name = item.get("alternative_name")
@@ -74,8 +74,9 @@ class FillInAlternativeIdMixin(ConvertToDBMixin):
         self._db_map_alt_lookup.clear()
         for db_map, names in db_map_names.items():
             for name in names:
-                item = self.db_mngr.get_item_by_field(db_map, "alternative", "name", name, only_visible=False)
-                if item:
+                if item := self.db_mngr.get_item_by_field(
+                    db_map, "alternative", "name", name, only_visible=False
+                ):
                     self._db_map_alt_lookup.setdefault(db_map, {})[name] = item
 
     def _convert_to_db(self, item, db_map):
@@ -113,8 +114,7 @@ class FillInParameterNameMixin(ConvertToDBMixin):
             list: error log
         """
         item, err = super()._convert_to_db(item, db_map)
-        name = item.pop("parameter_name", None)
-        if name:
+        if name := item.pop("parameter_name", None):
             item["name"] = name
         return item, err
 
@@ -125,7 +125,7 @@ class FillInValueListIdMixin(ConvertToDBMixin):
     def __init__(self, *args, **kwargs):
         """Initializes lookup dicts."""
         super().__init__(*args, **kwargs)
-        self._db_map_value_list_lookup = dict()
+        self._db_map_value_list_lookup = {}
 
     def build_lookup_dictionary(self, db_map_data):
         """Builds a name lookup dictionary for the given data.
@@ -135,7 +135,7 @@ class FillInValueListIdMixin(ConvertToDBMixin):
         """
         super().build_lookup_dictionary(db_map_data)
         # Group data by name
-        db_map_value_list_names = dict()
+        db_map_value_list_names = {}
         for db_map, items in db_map_data.items():
             for item in items:
                 value_list_name = item.get("value_list_name")
@@ -144,8 +144,13 @@ class FillInValueListIdMixin(ConvertToDBMixin):
         self._db_map_value_list_lookup.clear()
         for db_map, names in db_map_value_list_names.items():
             for name in names:
-                item = self.db_mngr.get_item_by_field(db_map, "parameter_value_list", "name", name, only_visible=False)
-                if item:
+                if item := self.db_mngr.get_item_by_field(
+                    db_map,
+                    "parameter_value_list",
+                    "name",
+                    name,
+                    only_visible=False,
+                ):
                     self._db_map_value_list_lookup.setdefault(db_map, {})[name] = item
 
     def _convert_to_db(self, item, db_map):
@@ -175,12 +180,13 @@ class FillInValueListIdMixin(ConvertToDBMixin):
         """
         if "value_list_name" not in item:
             return []
-        value_list_name = item.pop("value_list_name")
-        if value_list_name:
-            value_list = self._db_map_value_list_lookup.get(db_map, {}).get(value_list_name)
-            if not value_list:
+        if value_list_name := item.pop("value_list_name"):
+            if value_list := self._db_map_value_list_lookup.get(db_map, {}).get(
+                value_list_name
+            ):
+                item["parameter_value_list_id"] = value_list["id"]
+            else:
                 return [f"Unknown value list name {value_list_name}"] if value_list_name else []
-            item["parameter_value_list_id"] = value_list["id"]
         else:
             item["parameter_value_list_id"] = None
         return []
@@ -192,7 +198,7 @@ class FillInEntityClassIdMixin(ConvertToDBMixin):
     def __init__(self, *args, **kwargs):
         """Initializes lookup dicts."""
         super().__init__(*args, **kwargs)
-        self._db_map_ent_cls_lookup = dict()
+        self._db_map_ent_cls_lookup = {}
 
     def build_lookup_dictionary(self, db_map_data):
         """Builds a name lookup dictionary for the given data.
@@ -202,7 +208,7 @@ class FillInEntityClassIdMixin(ConvertToDBMixin):
         """
         super().build_lookup_dictionary(db_map_data)
         # Group data by name
-        db_map_names = dict()
+        db_map_names = {}
         for db_map, items in db_map_data.items():
             for item in items:
                 entity_class_name = item.get(self.entity_class_name_key)
@@ -211,8 +217,13 @@ class FillInEntityClassIdMixin(ConvertToDBMixin):
         self._db_map_ent_cls_lookup.clear()
         for db_map, names in db_map_names.items():
             for name in names:
-                item = self.db_mngr.get_item_by_field(db_map, self.entity_class_type, "name", name, only_visible=False)
-                if item:
+                if item := self.db_mngr.get_item_by_field(
+                    db_map,
+                    self.entity_class_type,
+                    "name",
+                    name,
+                    only_visible=False,
+                ):
                     self._db_map_ent_cls_lookup.setdefault(db_map, {})[name] = item
 
     def _fill_in_entity_class_id(self, item, db_map):
@@ -256,7 +267,7 @@ class FillInEntityIdsMixin(ConvertToDBMixin):
     def __init__(self, *args, **kwargs):
         """Initializes lookup dicts."""
         super().__init__(*args, **kwargs)
-        self._db_map_ent_lookup = dict()
+        self._db_map_ent_lookup = {}
 
     def build_lookup_dictionary(self, db_map_data):
         """Builds a name lookup dictionary for the given data.
@@ -266,7 +277,7 @@ class FillInEntityIdsMixin(ConvertToDBMixin):
         """
         super().build_lookup_dictionary(db_map_data)
         # Group data by name
-        db_map_names = dict()
+        db_map_names = {}
         for db_map, items in db_map_data.items():
             for item in items:
                 name = item.get(self.entity_name_key)
@@ -275,10 +286,13 @@ class FillInEntityIdsMixin(ConvertToDBMixin):
         self._db_map_ent_lookup.clear()
         for db_map, names in db_map_names.items():
             for name in names:
-                items = self.db_mngr.get_items_by_field(
-                    db_map, self.entity_type, self.entity_name_key_in_cache, name, only_visible=False
-                )
-                if items:
+                if items := self.db_mngr.get_items_by_field(
+                    db_map,
+                    self.entity_type,
+                    self.entity_name_key_in_cache,
+                    name,
+                    only_visible=False,
+                ):
                     self._db_map_ent_lookup.setdefault(db_map, {})[name] = items
 
     def _fill_in_entity_ids(self, item, db_map):
@@ -321,7 +335,7 @@ class FillInParameterDefinitionIdsMixin(ConvertToDBMixin):
     def __init__(self, *args, **kwargs):
         """Initializes lookup dicts."""
         super().__init__(*args, **kwargs)
-        self._db_map_param_lookup = dict()
+        self._db_map_param_lookup = {}
 
     def build_lookup_dictionary(self, db_map_data):
         """Builds a name lookup dictionary for the given data.
@@ -331,7 +345,7 @@ class FillInParameterDefinitionIdsMixin(ConvertToDBMixin):
         """
         super().build_lookup_dictionary(db_map_data)
         # Group data by name
-        db_map_names = dict()
+        db_map_names = {}
         for db_map, items in db_map_data.items():
             for item in items:
                 name = item.get("parameter_name")
@@ -340,14 +354,17 @@ class FillInParameterDefinitionIdsMixin(ConvertToDBMixin):
         self._db_map_param_lookup.clear()
         for db_map, names in db_map_names.items():
             for name in names:
-                items = [
+                if items := [
                     x
                     for x in self.db_mngr.get_items_by_field(
-                        db_map, "parameter_definition", "parameter_name", name, only_visible=False
+                        db_map,
+                        "parameter_definition",
+                        "parameter_name",
+                        name,
+                        only_visible=False,
                     )
                     if self.entity_class_id_key in x
-                ]
-                if items:
+                ]:
                     self._db_map_param_lookup.setdefault(db_map, {})[name] = items
 
     def _fill_in_parameter_ids(self, item, db_map):
@@ -490,9 +507,9 @@ class MakeRelationshipOnTheFlyMixin:
     def __init__(self, *args, **kwargs):
         """Initializes lookup dicts."""
         super().__init__(*args, **kwargs)
-        self._db_map_obj_lookup = dict()
-        self._db_map_rel_cls_lookup = dict()
-        self._db_map_existing_rels = dict()
+        self._db_map_obj_lookup = {}
+        self._db_map_rel_cls_lookup = {}
+        self._db_map_existing_rels = {}
 
     @staticmethod
     def _make_unique_relationship_id(item):
@@ -506,12 +523,11 @@ class MakeRelationshipOnTheFlyMixin:
             db_map_data (dict): lists of model items keyed by DiffDatabaseMapping.
         """
         # Group data by name
-        db_map_object_names = dict()
-        db_map_rel_cls_names = dict()
+        db_map_object_names = {}
+        db_map_rel_cls_names = {}
         for db_map, items in db_map_data.items():
             for item in items:
-                object_name_list = item.get("object_name_list")
-                if object_name_list:
+                if object_name_list := item.get("object_name_list"):
                     db_map_object_names.setdefault(db_map, set()).update(object_name_list)
                 relationship_class_name = item.get("relationship_class_name")
                 db_map_rel_cls_names.setdefault(db_map, set()).add(relationship_class_name)
@@ -519,14 +535,16 @@ class MakeRelationshipOnTheFlyMixin:
         self._db_map_obj_lookup.clear()
         for db_map, names in db_map_object_names.items():
             for name in names:
-                item = self.db_mngr.get_item_by_field(db_map, "object", "name", name, only_visible=False)
-                if item:
+                if item := self.db_mngr.get_item_by_field(
+                    db_map, "object", "name", name, only_visible=False
+                ):
                     self._db_map_obj_lookup.setdefault(db_map, {})[name] = item
         self._db_map_rel_cls_lookup.clear()
         for db_map, names in db_map_rel_cls_names.items():
             for name in names:
-                item = self.db_mngr.get_item_by_field(db_map, "relationship_class", "name", name, only_visible=False)
-                if item:
+                if item := self.db_mngr.get_item_by_field(
+                    db_map, "relationship_class", "name", name, only_visible=False
+                ):
                     self._db_map_rel_cls_lookup.setdefault(db_map, {})[name] = item
         self._db_map_existing_rels = {
             db_map: {
@@ -559,9 +577,9 @@ class MakeRelationshipOnTheFlyMixin:
             return None, [f"Unknown relationship_class {relationship_class_name}"] if relationship_class_name else []
         object_id_list = []
         for name in object_name_list:
-            object_ = self._db_map_obj_lookup.get(db_map, {}).get(name)
-            if not object_:
+            if object_ := self._db_map_obj_lookup.get(db_map, {}).get(name):
+                object_id_list.append(object_["id"])
+            else:
                 return None, [f"Unknown object {name}"]
-            object_id_list.append(object_["id"])
-        relationship_name = relationship_class_name + "__" + "_".join(object_name_list)
+        relationship_name = f"{relationship_class_name}__" + "_".join(object_name_list)
         return {"class_id": relationship_class["id"], "object_id_list": object_id_list, "name": relationship_name}, []

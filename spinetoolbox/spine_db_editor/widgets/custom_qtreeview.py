@@ -129,8 +129,7 @@ class EntityTreeView(ResizableTreeView):
         self._refresh_selected_indexes()
 
     def setModel(self, model):
-        old_model = self.model()
-        if old_model:
+        if old_model := self.model():
             old_model.layoutChanged.disconnect(self._fetch_more_timer.start)
         super().setModel(model)
         model.layoutChanged.connect(self._fetch_more_timer.start)
@@ -522,7 +521,7 @@ class AlternativeTreeView(ItemTreeView):
             parent (QWidget): parent widget
         """
         super().__init__(parent=parent)
-        self._selected_alternative_ids = dict()
+        self._selected_alternative_ids = {}
         self._generate_scenarios_action = None
 
     @property
@@ -606,7 +605,7 @@ class AlternativeTreeView(ItemTreeView):
         if not isinstance(item, AlternativeItem):
             return
         included_ids = set()
-        alternatives = list()
+        alternatives = []
         db_map = item.db_map
         for id_ in self._selected_alternative_ids.get(db_map, ()):
             if id_ not in included_ids:
@@ -631,9 +630,10 @@ class AlternativeTreeView(ItemTreeView):
         """See base class."""
         clipboard = QApplication.clipboard()
         mime_data = clipboard.mimeData()
-        if mime_data is None or not mime_data.hasFormat(mime_types.ALTERNATIVE_DATA):
-            return False
-        return True
+        return bool(
+            mime_data is not None
+            and mime_data.hasFormat(mime_types.ALTERNATIVE_DATA)
+        )
 
     def copy(self):
         """See base class."""
@@ -682,7 +682,7 @@ class ScenarioTreeView(ItemTreeView):
             parent (QWidget): parent widget
         """
         super().__init__(parent=parent)
-        self._selected_alternative_ids = dict()
+        self._selected_alternative_ids = {}
         self._duplicate_scenario_action = None
 
     @property

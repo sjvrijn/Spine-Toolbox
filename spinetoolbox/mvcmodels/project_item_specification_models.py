@@ -27,7 +27,7 @@ class ProjectItemSpecificationModel(QAbstractListModel):
 
     def __init__(self, icons):
         super().__init__()
-        self._spec_names = list()
+        self._spec_names = []
         self._icons = icons
         self._project = None
 
@@ -81,7 +81,7 @@ class ProjectItemSpecificationModel(QAbstractListModel):
 
     def clear(self):
         self.beginResetModel()
-        self._spec_names = list()
+        self._spec_names = []
         self.endResetModel()
 
     def rowCount(self, parent=None):
@@ -179,18 +179,20 @@ class ProjectItemSpecificationModel(QAbstractListModel):
 
     def specification_row(self, name):
         """Returns the row on which the given specification is located or -1 if it is not found."""
-        for i, spec_name in enumerate(self._spec_names):
-            if name.lower() == spec_name.lower():
-                return i
-        return -1
+        return next(
+            (
+                i
+                for i, spec_name in enumerate(self._spec_names)
+                if name.lower() == spec_name.lower()
+            ),
+            -1,
+        )
 
     def specification_index(self, name):
         """Returns the QModelIndex on which a specification with
         the given name is located or invalid index if it is not found."""
         row = self.specification_row(name)
-        if row == -1:
-            return QModelIndex()
-        return self.createIndex(row, 0)
+        return QModelIndex() if row == -1 else self.createIndex(row, 0)
 
 
 class FilteredSpecificationModel(QSortFilterProxyModel):

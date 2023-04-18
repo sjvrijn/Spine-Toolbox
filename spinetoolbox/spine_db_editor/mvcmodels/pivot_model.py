@@ -111,13 +111,13 @@ class PivotModel:
         Returns:
             str, NoneType: error message or None if no error
         """
-        if not len(set(self.index_ids)) == len(self.index_ids):
+        if len(set(self.index_ids)) != len(self.index_ids):
             err_msg = "index ids must be unique"
-        elif not all(i in self.index_ids for i in frozen):
+        elif any(i not in self.index_ids for i in frozen):
             err_msg = "'frozen' contains wrong ids"
-        elif not all(i in self.index_ids for i in rows):
+        elif any(i not in self.index_ids for i in rows):
             err_msg = "'rows' contains wrong ids"
-        elif not all(c in self.index_ids for c in columns):
+        elif any(c not in self.index_ids for c in columns):
             err_msg = "'columns' contains wrong ids"
         elif len(set(rows + columns + frozen)) != len(self.index_ids):
             err_msg = "ids in 'rows', 'columns' and 'frozen' are not unique"

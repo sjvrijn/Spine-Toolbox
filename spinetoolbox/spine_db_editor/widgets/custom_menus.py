@@ -66,7 +66,7 @@ class ParameterViewFilterMenu(FilterMenuBase):
         self._db_mngr = db_mngr
         self._entity_class_id_key = entity_class_id_key
         self._field = field
-        self._menu_data = dict()  # Maps display value to set of (db map, entity_class_id, actual value) tuples
+        self._menu_data = {}
         fetch_parent = FlexibleFetchParent(
             self._item_type,
             handle_items_added=self._handle_items_added,
@@ -90,9 +90,7 @@ class ParameterViewFilterMenu(FilterMenuBase):
         self._filter._apply_filter()
 
     def _get_value(self, item, db_map):
-        if self._field == "database":
-            return db_map.codename
-        return item[self._field]
+        return db_map.codename if self._field == "database" else item[self._field]
 
     def _get_display_value(self, item, db_map):
         if self._field in ("value", "default_value"):

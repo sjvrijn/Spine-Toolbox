@@ -249,7 +249,7 @@ def pyside6_version_check():
     qt_version (str) is the Qt version used to compile PySide6. E.g. "6.4.1"
     qt_version_info (tuple) contains each version component separately e.g. (6, 4, 1)
     """
-    if not (qt_version_info[0] == 6 and qt_version_info[1] >= 4):
+    if qt_version_info[0] != 6 or qt_version_info[1] < 4:
         print(
             f"""Sorry for the inconvenience but,
 
@@ -282,9 +282,9 @@ def get_datetime(show, date=True):
     t = datetime.datetime.now()
     time_str = "{:02d}:{:02d}:{:02d}".format(t.hour, t.minute, t.second)
     if not date:
-        return "[{}] ".format(time_str)
+        return f"[{time_str}] "
     date_str = "{:02d}-{:02d}-{:02d}".format(t.day, t.month, t.year)
-    return "[{} {}] ".format(date_str, time_str)
+    return f"[{date_str} {time_str}] "
 
 
 @busy_effect
@@ -365,10 +365,7 @@ def recursive_overwrite(logger, src, dst, ignore=None, silent=True):
             if os.path.samefile(os.path.commonpath((file_path, dst)), file_path):
                 files.remove(file_name)
                 break
-        if ignore is not None:
-            ignored = ignore(src, files)
-        else:
-            ignored = set()
+        ignored = ignore(src, files) if ignore is not None else set()
         for f in files:
             if f not in ignored:
                 recursive_overwrite(logger, os.path.join(src, f), os.path.join(dst, f), ignore, silent)
@@ -403,7 +400,7 @@ def format_string_list(str_list):
     Returns:
         str: formatted list
     """
-    return "<ul>" + "".join(["<li>" + str(x) + "</li>" for x in str_list]) + "</ul>"
+    return "<ul>" + "".join([f"<li>{str(x)}</li>" for x in str_list]) + "</ul>"
 
 
 def rows_to_row_count_tuples(rows):
@@ -771,9 +768,11 @@ class ChildCyclingKeyPressFilter(QObject):
     Item Properties tab widget."""
 
     def eventFilter(self, obj, event):
-        if event.type() == QEvent.KeyPress:
-            if event.matches(QKeySequence.NextChild) or event.matches(QKeySequence.PreviousChild):
-                return True
+        if event.type() == QEvent.KeyPress and (
+            event.matches(QKeySequence.NextChild)
+            or event.matches(QKeySequence.PreviousChild)
+        ):
+            return True
         return QObject.eventFilter(self, obj, event)  # Pass event further
 
 
@@ -831,10 +830,12 @@ def select_julia_project(parent, line_edit):
         parent (QWidget, optional): Parent of QFileDialog
         line_edit (QLineEdit): Line edit where the selected path will be inserted
     """
-    answer = QFileDialog.getExistingDirectory(parent, "Select Julia project directory", home_dir())
-    if not answer:  # Canceled (american-english), cancelled (british-english)
+    if answer := QFileDialog.getExistingDirectory(
+        parent, "Select Julia project directory", home_dir()
+    ):
+        line_edit.setText(answer)
+    else:
         return
-    line_edit.setText(answer)
 
 
 def select_python_interpreter(parent, line_edit):
@@ -888,10 +889,12 @@ def select_certificate_directory(parent, line_edit):
         parent (QWidget, optional): Parent of QFileDialog
         line_edit (QLineEdit): Line edit where the selected dir path will be inserted
     """
-    answer = QFileDialog.getExistingDirectory(parent, "Select certificates directory", home_dir())
-    if not answer:
+    if answer := QFileDialog.getExistingDirectory(
+        parent, "Select certificates directory", home_dir()
+    ):
+        line_edit.setText(answer)
+    else:
         return
-    line_edit.setText(answer)
 
 
 def file_is_valid(parent, file_path, msgbox_title, extra_check=None):

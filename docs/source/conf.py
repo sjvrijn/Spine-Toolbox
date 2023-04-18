@@ -25,13 +25,13 @@ from spinetoolbox.version import __version__, __version_info__
 
 project = "Spine Toolbox"
 author = "Spine project consortium"
-copyright = "2017-2021 {}".format(author)
+copyright = f"2017-2021 {author}"
 
 
 # The short X.Y version
-version = str(__version_info__.major) + "." + str(__version_info__.minor)
+version = f"{str(__version_info__.major)}.{str(__version_info__.minor)}"
 # The full version, including alpha/beta/rc tags
-release = __version__ + "-" + __version_info__.releaselevel + "." + str(__version_info__.serial)
+release = f"{__version__}-{__version_info__.releaselevel}.{str(__version_info__.serial)}"
 
 
 # -- General configuration ---------------------------------------------------

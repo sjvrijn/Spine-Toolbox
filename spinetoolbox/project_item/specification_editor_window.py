@@ -383,6 +383,4 @@ def prompt_to_save_changes(parent, settings, save_callback):
         # Save preference
         preference = "2" if answer == QMessageBox.StandardButton.Yes else "0"
         settings.setValue("appSettings/saveSpecBeforeClosing", preference)
-    if answer == QMessageBox.StandardButton.Yes:
-        return save_callback()
-    return True
+    return save_callback() if answer == QMessageBox.StandardButton.Yes else True

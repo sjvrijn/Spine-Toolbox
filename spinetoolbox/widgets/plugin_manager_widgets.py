@@ -23,9 +23,7 @@ from .custom_qwidgets import ToolBarWidget
 
 class _InstallPluginModel(QStandardItemModel):
     def data(self, index, role=None):
-        if role == Qt.SizeHintRole:
-            return QSize(0, 40)
-        return super().data(index, role)
+        return QSize(0, 40) if role == Qt.SizeHintRole else super().data(index, role)
 
 
 class _ManagePluginsModel(_InstallPluginModel):

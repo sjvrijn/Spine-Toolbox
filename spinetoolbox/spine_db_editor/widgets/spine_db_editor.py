@@ -103,7 +103,9 @@ class SpineDBEditorBase(QMainWindow):
         self.err_msg.setWindowTitle("Error")
         self.err_msg.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
         self.silenced = False
-        max_screen_height = max([s.availableSize().height() for s in QGuiApplication.screens()])
+        max_screen_height = max(
+            s.availableSize().height() for s in QGuiApplication.screens()
+        )
         self.visible_rows = int(max_screen_height / preferred_row_height(self))
         self.settings_group = "spineDBEditor"
         self.undo_action = None
@@ -214,7 +216,7 @@ class SpineDBEditorBase(QMainWindow):
         self.qsettings.endGroup()
         if not file_path:
             return
-        url = "sqlite:///" + file_path
+        url = f"sqlite:///{file_path}"
         self.load_db_urls({url: None})
 
     @Slot(bool)
@@ -226,7 +228,7 @@ class SpineDBEditorBase(QMainWindow):
         self.qsettings.endGroup()
         if not file_path:
             return
-        url = "sqlite:///" + file_path
+        url = f"sqlite:///{file_path}"
         db_url_codenames = self.db_url_codenames
         db_url_codenames[url] = None
         self.load_db_urls(db_url_codenames)
@@ -244,7 +246,7 @@ class SpineDBEditorBase(QMainWindow):
             os.remove(file_path)
         except OSError:
             pass
-        url = "sqlite:///" + file_path
+        url = f"sqlite:///{file_path}"
         self.load_db_urls({url: None}, create=True)
 
     def _make_docks_menu(self):
@@ -509,7 +511,7 @@ class SpineDBEditorBase(QMainWindow):
             self.msg.emit(f"Couldn't import file {filename}: {str(err)}")
             raise err  # NOTE: This is so the programmer gets to see the traceback
         if errors:
-            msg = f"The following errors where found parsing {filename}:" + format_string_list(errors)
+            msg = f"The following errors where found parsing {filename}:{format_string_list(errors)}"
             self.msg_error.emit(msg)
         self.import_data(mapped_data)
         self.msg.emit(f"File {filename} successfully imported.")
@@ -621,7 +623,10 @@ class SpineDBEditorBase(QMainWindow):
         """
         orig_name = object_item.display_data
         dup_name, ok = QInputDialog.getText(
-            self, "Duplicate object", "Enter a name for the duplicate object:", text=orig_name + "_copy"
+            self,
+            "Duplicate object",
+            "Enter a name for the duplicate object:",
+            text=f"{orig_name}_copy",
         )
         if not ok:
             return
@@ -640,7 +645,10 @@ class SpineDBEditorBase(QMainWindow):
         """
         orig_name = self.db_mngr.get_item(db_map, "scenario", scen_id)["name"]
         dup_name, ok = QInputDialog.getText(
-            self, "Duplicate object", "Enter a name for the duplicate object:", text=orig_name + "_copy"
+            self,
+            "Duplicate object",
+            "Enter a name for the duplicate object:",
+            text=f"{orig_name}_copy",
         )
         if not ok:
             return
@@ -681,10 +689,10 @@ class SpineDBEditorBase(QMainWindow):
         if not dirty_db_maps:
             return
         db_names = ", ".join([db_map.codename for db_map in dirty_db_maps])
-        commit_msg = self._get_commit_msg(db_names)
-        if not commit_msg:
+        if commit_msg := self._get_commit_msg(db_names):
+            self.db_mngr.commit_session(commit_msg, *dirty_db_maps, cookie=self)
+        else:
             return
-        self.db_mngr.commit_session(commit_msg, *dirty_db_maps, cookie=self)
 
     @Slot(bool)
     def rollback_session(self, checked=False):
@@ -764,7 +772,7 @@ class SpineDBEditorBase(QMainWindow):
         for db_map, error_log in db_map_error_log.items():
             if isinstance(error_log, str):
                 error_log = [error_log]
-            msg = "From " + db_map.codename + ":" + format_string_list(error_log)
+            msg = f"From {db_map.codename}:{format_string_list(error_log)}"
             msgs.append(msg)
         self.msg_error.emit(format_string_list(msgs))
 
@@ -823,9 +831,9 @@ class SpineDBEditorBase(QMainWindow):
             answer = self._prompt_to_commit_changes()
             if answer == QMessageBox.StandardButton.Cancel:
                 return False
-            db_names = ", ".join([db_map.codename for db_map in dirty_db_maps])
             if answer == QMessageBox.StandardButton.Save:
                 commit_dirty = True
+                db_names = ", ".join([db_map.codename for db_map in dirty_db_maps])
                 commit_msg = self._get_commit_msg(db_names)
                 if not commit_msg:
                     return False

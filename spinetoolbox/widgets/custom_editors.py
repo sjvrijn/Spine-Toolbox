@@ -236,7 +236,7 @@ class SearchBarEditor(QTableView):
             text (str): text the user has entered on the first row
         """
         self._original_text = text
-        self.proxy_model.setFilterRegularExpression("^" + text)
+        self.proxy_model.setFilterRegularExpression(f"^{text}")
         self.proxy_model.setData(self.first_index, text)
         self.refit()
 

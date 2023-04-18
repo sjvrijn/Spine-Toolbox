@@ -239,7 +239,7 @@ class ChangeNotifier(QObject):
         if cmd in self._notified_commands:
             return
         self._notified_commands.add(cmd)
-        notification_text = cmd.actionText() + " successful"
+        notification_text = f"{cmd.actionText()} successful"
         button_text = "undo"
         button_slot = self._undo_stack.undo
         self._notification = ButtonNotification(

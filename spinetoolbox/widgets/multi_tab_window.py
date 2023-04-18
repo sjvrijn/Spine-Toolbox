@@ -390,8 +390,7 @@ class MultiTabWindow(QMainWindow):
         if tab is None:
             return None
         menu = QMenu(self)
-        others = self.others()
-        if others:
+        if others := self.others():
             move_tab_menu = menu.addMenu("Move tab to another window")
             move_tab_to_new_window = move_tab_menu.addAction(
                 "New window", lambda _=False, index=index: self.move_tab(index, None)
@@ -501,7 +500,7 @@ class TabBarPlus(QTabBar):
 
     def _move_plus_button(self):
         """Places the plus button at the right of the last tab."""
-        left = sum([self.tabRect(i).width() for i in range(self.count())])
+        left = sum(self.tabRect(i).width() for i in range(self.count()))
         top = self.geometry().top() + 1
         self._plus_button.move(left, top)
 

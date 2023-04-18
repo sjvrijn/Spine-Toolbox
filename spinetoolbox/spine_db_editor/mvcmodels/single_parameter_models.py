@@ -36,7 +36,7 @@ class HalfSortedTableModel(MinimalTableModel):
     def reset_model(self, main_data=None):
         """Reset model."""
         if main_data is None:
-            main_data = list()
+            main_data = []
         self.beginResetModel()
         self._main_data = sorted(main_data, key=self._sort_key)
         self.endResetModel()
@@ -70,7 +70,7 @@ class SingleParameterModel(HalfSortedTableModel):
         self.db_mngr = db_mngr
         self.db_map = db_map
         self.entity_class_id = entity_class_id
-        self._auto_filter = dict()  # Maps field to accepted ids for that field
+        self._auto_filter = {}
         self.committed = committed
 
     def __lt__(self, other):
@@ -198,9 +198,7 @@ class SingleParameterModel(HalfSortedTableModel):
 
     def get_id_key(self, field):
         field_item_data = self.get_field_item_data(field)
-        if field_item_data is None:
-            return None
-        return field_item_data[0]
+        return None if field_item_data is None else field_item_data[0]
 
     def get_field_item(self, field, db_item):
         """Returns a db item corresponding to the given field from the table header,
@@ -247,9 +245,7 @@ class SingleParameterModel(HalfSortedTableModel):
             return data
         if role == Qt.ItemDataRole.DecorationRole and field == self.entity_class_name_field:
             return self.db_mngr.entity_class_icon(self.db_map, self.entity_class_type, self.entity_class_id)
-        if role == DB_MAP_ROLE:
-            return self.db_map
-        return super().data(index, role)
+        return self.db_map if role == DB_MAP_ROLE else super().data(index, role)
 
     def batch_set_data(self, indexes, data):
         """Sets data for indexes in batch.
@@ -264,7 +260,7 @@ class SingleParameterModel(HalfSortedTableModel):
 
         if not indexes or not data:
             return False
-        row_data = dict()
+        row_data = {}
         for index, value in zip(indexes, data):
             row_data.setdefault(index.row(), {})[self.header[index.column()]] = split_value(value, index.column())
         items = [dict(id=self._main_data[row], **data) for row, data in row_data.items()]
@@ -292,10 +288,10 @@ class SingleParameterModel(HalfSortedTableModel):
         """Returns the result of the auto filter."""
         if self._auto_filter is None:
             return False
-        for field, values in self._auto_filter.items():
-            if values and item.get(field) not in values:
-                return False
-        return True
+        return not any(
+            values and item.get(field) not in values
+            for field, values in self._auto_filter.items()
+        )
 
     def accepted_rows(self):
         """Yields accepted rows, for convenience."""
@@ -357,8 +353,8 @@ class SingleParameterDefinitionMixin(FillInParameterNameMixin, FillInValueListId
             items (list): dictionary-items
         """
         self.build_lookup_dictionary({self.db_map: items})
-        param_defs = list()
-        error_log = list()
+        param_defs = []
+        error_log = []
         for item in items:
             param_def, errors = self._convert_to_db(item, self.db_map)
             if tuple(param_def.keys()) != ("id",):
@@ -429,17 +425,19 @@ class SingleParameterValueMixin(
 
     def _entity_filter_accepts_item(self, item):
         """Returns the result of the entity filter."""
-        if not self._filter_db_map_class_entity_ids:
-            return True
-        entity_id = item["entity_id"]
-        return entity_id in self._filter_entity_ids
+        return (
+            item["entity_id"] in self._filter_entity_ids
+            if self._filter_db_map_class_entity_ids
+            else True
+        )
 
     def _alternative_filter_accepts_item(self, item):
         """Returns the result of the alternative filter."""
-        if not self._filter_alternative_ids:
-            return True
-        alternative_id = item["alternative_id"]
-        return alternative_id in self._filter_alternative_ids
+        return (
+            item["alternative_id"] in self._filter_alternative_ids
+            if self._filter_alternative_ids
+            else True
+        )
 
     def update_items_in_db(self, items):
         """Update items in db.
@@ -447,10 +445,9 @@ class SingleParameterValueMixin(
         Args:
             items (list): dictionary-items
         """
-        param_vals = list()
-        error_log = list()
-        db_map_data = dict()
-        db_map_data[self.db_map] = items
+        param_vals = []
+        error_log = []
+        db_map_data = {self.db_map: items}
         self.build_lookup_dictionary(db_map_data)
         for item in items:
             param_val, errors = self._convert_to_db(item, self.db_map)
@@ -503,8 +500,8 @@ class SingleRelationshipParameterValueModel(
             item["relationship_class_name"] = self.entity_class_name
         db_map_data = {self.db_map: items}
         self.build_lookup_dictionaries(db_map_data)
-        db_map_relationships = dict()
-        db_map_error_log = dict()
+        db_map_relationships = {}
+        db_map_error_log = {}
         for db_map, data in db_map_data.items():
             for item in data:
                 relationship, err = self._make_relationship_on_the_fly(item, db_map)

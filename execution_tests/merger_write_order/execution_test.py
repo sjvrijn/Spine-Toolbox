@@ -23,7 +23,7 @@ class MergerWriteOrder(unittest.TestCase):
             self._source_database_2_path: 99.0
         }
         for database_path, spoon_volume in spoon_volumes.items():
-            url = "sqlite:///" + str(database_path)
+            url = f"sqlite:///{str(database_path)}"
             db_map = DatabaseMapping(url, create=True)
             import_functions.import_object_classes(db_map, ("Widget",))
             import_functions.import_objects(db_map, (("Widget", "spoon"),))
@@ -31,7 +31,7 @@ class MergerWriteOrder(unittest.TestCase):
             import_functions.import_object_parameter_values(db_map, (("Widget", "spoon", "volume", spoon_volume, "Base"),))
             db_map.commit_session("Add test data.")
             db_map.connection.close()
-        self._sink_url = "sqlite:///" + str(self._sink_database_path)
+        self._sink_url = f"sqlite:///{str(self._sink_database_path)}"
         db_map = DatabaseMapping(self._sink_url, create=True)
         db_map.connection.close()
 
